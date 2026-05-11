@@ -1,14 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
 const SHAPES = [
-  { id:"circle",  label:"Circle"  },
-  { id:"square",  label:"Square"  },
-  { id:"stamp",   label:"Stamp"   },
-  { id:"star",    label:"Star"    },
-  { id:"heart",   label:"Heart"   },
-  { id:"diamond", label:"Diamond" },
-  { id:"leaf",    label:"Leaf"    },
-  { id:"flower",  label:"Flower"  },
+  { id:"circle",    label:"Circle"    },
+  { id:"star",      label:"Star"      },
+  { id:"heart",     label:"Heart"     },
+  { id:"butterfly", label:"Butterfly" },
+  { id:"flower",    label:"Flower"    },
+  { id:"diamond",   label:"Diamond"   },
 ];
 
 // Populate with { id, label, src } when wallpaper resources are ready
@@ -26,19 +24,6 @@ function clipShape(ctx, shape) {
   ctx.beginPath();
   switch(shape) {
     case "circle": ctx.arc(0,0,1,0,Math.PI*2); break;
-    case "square": ctx.rect(-1,-1,2,2); break;
-    case "stamp": {
-      const b=0.14,n=4,s=2/n;
-      ctx.moveTo(-1,-1);
-      for(let i=0;i<n;i++) ctx.arc(-1+s*i+s/2,-1,b,Math.PI,0,false);
-      ctx.lineTo(1,-1);
-      for(let i=0;i<n;i++) ctx.arc(1,-1+s*i+s/2,b,-Math.PI/2,Math.PI/2,false);
-      ctx.lineTo(1,1);
-      for(let i=n-1;i>=0;i--) ctx.arc(-1+s*i+s/2,1,b,0,Math.PI,false);
-      ctx.lineTo(-1,1);
-      for(let i=n-1;i>=0;i--) ctx.arc(-1,-1+s*i+s/2,b,Math.PI/2,-Math.PI/2,false);
-      ctx.closePath(); break;
-    }
     case "star": {
       const pts=5, outer=1, inner=0.4;
       for(let i=0;i<pts*2;i++){
@@ -57,14 +42,26 @@ function clipShape(ctx, shape) {
       ctx.bezierCurveTo(1, 0.4, 0.1, 0.6, 0, 1);
       ctx.closePath(); break;
     }
-    case "diamond":
-      ctx.moveTo(0,-1); ctx.lineTo(1,0); ctx.lineTo(0,1); ctx.lineTo(-1,0);
-      ctx.closePath(); break;
-    case "leaf":
-      ctx.moveTo(0,-1);
-      ctx.bezierCurveTo(0.85,-0.5,0.85,0.5,0,1);
-      ctx.bezierCurveTo(-0.85,0.5,-0.85,-0.5,0,-1);
-      ctx.closePath(); break;
+    case "butterfly": {
+      // 4 wings radiating from centre — each a closed bezier loop
+      ctx.moveTo(0,0);
+      ctx.bezierCurveTo(-0.3,-0.3,-1.0,-0.75,-0.85,0.1);
+      ctx.bezierCurveTo(-0.7,0.5,-0.15,0.35,0,0);
+      ctx.closePath();
+      ctx.moveTo(0,0);
+      ctx.bezierCurveTo(0.3,-0.3,1.0,-0.75,0.85,0.1);
+      ctx.bezierCurveTo(0.7,0.5,0.15,0.35,0,0);
+      ctx.closePath();
+      ctx.moveTo(0,0);
+      ctx.bezierCurveTo(-0.15,0.1,-0.62,0.55,-0.48,0.9);
+      ctx.bezierCurveTo(-0.32,1.08,-0.05,0.62,0,0);
+      ctx.closePath();
+      ctx.moveTo(0,0);
+      ctx.bezierCurveTo(0.15,0.1,0.62,0.55,0.48,0.9);
+      ctx.bezierCurveTo(0.32,1.08,0.05,0.62,0,0);
+      ctx.closePath();
+      break;
+    }
     case "flower": {
       const p=5,cr=0.22;
       for(let i=0;i<p;i++){
@@ -80,6 +77,9 @@ function clipShape(ctx, shape) {
       }
       ctx.closePath(); break;
     }
+    case "diamond":
+      ctx.moveTo(0,-1); ctx.lineTo(1,0); ctx.lineTo(0,1); ctx.lineTo(-1,0);
+      ctx.closePath(); break;
     default: break;
   }
 }
@@ -87,21 +87,19 @@ function clipShape(ctx, shape) {
 function applyClip(ctx,x,y,size,shape){
   const s=size/2;
   ctx.translate(x,y);
-  if(shape==="leaf") ctx.rotate(Math.PI/4);
   ctx.scale(s,s);
   clipShape(ctx,shape);
   ctx.clip();
   ctx.scale(1/s,1/s);
-  if(shape==="leaf") ctx.rotate(-Math.PI/4);
   ctx.translate(-x,-y);
 }
 
 // ── Shape icon ────────────────────────────────────────────
 function ShapeIcon({shape,active}){
   const f=active?C.accent:C.muted;
-  if(shape==="heart") return(
+  if(shape==="circle") return(
     <svg width={22} height={22} viewBox="-1.2 -1.2 2.4 2.4">
-      <path fill={f} d="M0,1 C-0.1,0.6 -1,0.4 -1,-0.2 C-1,-0.8 -0.5,-1 0,-0.5 C0.5,-1 1,-0.8 1,-0.2 C1,0.4 0.1,0.6 0,1 Z"/>
+      <circle fill={f} cx="0" cy="0" r="1"/>
     </svg>
   );
   if(shape==="star") return(
@@ -112,38 +110,45 @@ function ShapeIcon({shape,active}){
       }).join(" ")}/>
     </svg>
   );
-  if(shape==="stamp"){
-    const b=0.14,n=4,s=2/n;
-    let d=`M-1,-1`;
-    for(let i=0;i<n;i++) d+=` L${-1+s*i+s/2-b},-1 A${b},${b} 0 0,0 ${-1+s*i+s/2+b},-1`;
-    d+=` L1,-1`;
-    for(let i=0;i<n;i++) d+=` L1,${-1+s*i+s/2-b} A${b},${b} 0 0,0 1,${-1+s*i+s/2+b}`;
-    d+=` L1,1`;
-    for(let i=n-1;i>=0;i--) d+=` L${-1+s*i+s/2+b},1 A${b},${b} 0 0,0 ${-1+s*i+s/2-b},1`;
-    d+=` L-1,1`;
-    for(let i=n-1;i>=0;i--) d+=` L-1,${-1+s*i+s/2+b} A${b},${b} 0 0,0 -1,${-1+s*i+s/2-b}`;
-    d+=" Z";
+  if(shape==="heart") return(
+    <svg width={22} height={22} viewBox="-1.2 -1.2 2.4 2.4">
+      <path fill={f} d="M0,1 C-0.1,0.6 -1,0.4 -1,-0.2 C-1,-0.8 -0.5,-1 0,-0.5 C0.5,-1 1,-0.8 1,-0.2 C1,0.4 0.1,0.6 0,1 Z"/>
+    </svg>
+  );
+  if(shape==="butterfly") return(
+    <svg width={22} height={22} viewBox="-1.2 -1.2 2.4 2.4">
+      <path fill={f} d="
+        M0,0 C-0.3,-0.3 -1,-0.75 -0.85,0.1 C-0.7,0.5 -0.15,0.35 0,0 Z
+        M0,0 C0.3,-0.3 1,-0.75 0.85,0.1 C0.7,0.5 0.15,0.35 0,0 Z
+        M0,0 C-0.15,0.1 -0.62,0.55 -0.48,0.9 C-0.32,1.08 -0.05,0.62 0,0 Z
+        M0,0 C0.15,0.1 0.62,0.55 0.48,0.9 C0.32,1.08 0.05,0.62 0,0 Z
+      "/>
+    </svg>
+  );
+  if(shape==="flower"){
+    const p=5,cr=0.22;
+    let d='';
+    for(let i=0;i<p;i++){
+      const a=(i/p)*Math.PI*2-Math.PI/2;
+      const tx=Math.cos(a),ty=Math.sin(a);
+      const c1x=Math.cos(a-0.48)*0.65,c1y=Math.sin(a-0.48)*0.65;
+      const c2x=Math.cos(a+0.48)*0.65,c2y=Math.sin(a+0.48)*0.65;
+      const ix=Math.cos(a-0.52)*cr,iy=Math.sin(a-0.52)*cr;
+      const ox=Math.cos(a+0.52)*cr,oy=Math.sin(a+0.52)*cr;
+      const r=(n)=>n.toFixed(4);
+      d+=i===0?`M${r(ix)},${r(iy)}`:`L${r(ix)},${r(iy)}`;
+      d+=` C${r(c1x)},${r(c1y)} ${r(tx)},${r(ty)} ${r(tx)},${r(ty)}`;
+      d+=` C${r(tx)},${r(ty)} ${r(c2x)},${r(c2y)} ${r(ox)},${r(oy)}`;
+    }
+    d+='Z';
     return <svg width={22} height={22} viewBox="-1.2 -1.2 2.4 2.4"><path fill={f} d={d}/></svg>;
   }
-  if(shape==="leaf") return(
+  if(shape==="diamond") return(
     <svg width={22} height={22} viewBox="-1.2 -1.2 2.4 2.4">
-      <path fill={f} transform="rotate(45)" d="M0,-1 C0.85,-0.5 0.85,0.5 0,1 C-0.85,0.5 -0.85,-0.5 0,-1 Z"/>
+      <path fill={f} d="M0,-1 L1,0 L0,1 L-1,0 Z"/>
     </svg>
   );
-  if(shape==="flower") return(
-    <svg width={22} height={22} viewBox="-1.2 -1.2 2.4 2.4">
-      {Array.from({length:5},(_,i)=>{
-        const a=(i/5)*Math.PI*2-Math.PI/2;
-        return <ellipse key={i} fill={f} cx={Math.cos(a)*0.55} cy={Math.sin(a)*0.55} rx="0.35" ry="0.55"
-          transform={`rotate(${a*180/Math.PI+90} ${Math.cos(a)*0.55} ${Math.sin(a)*0.55})`}/>;
-      })}
-      <circle fill={C.white} cx="0" cy="0" r="0.28"/>
-      <circle fill={f} cx="0" cy="0" r="0.18"/>
-    </svg>
-  );
-  return <span style={{fontSize:16,color:f,lineHeight:1}}>
-    {shape==="circle"?"●":shape==="square"?"■":"◆"}
-  </span>;
+  return null;
 }
 
 // ── Main ──────────────────────────────────────────────────
@@ -311,7 +316,7 @@ export default function PunchCut(){
   const ShapeGrid = ()=>(
     <div>
       <Lbl>Punch Shape</Lbl>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginTop:8}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:5,marginTop:8}}>
         {SHAPES.map(s=>{
           const active=shape===s.id;
           return(
