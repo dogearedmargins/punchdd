@@ -11,6 +11,10 @@ const SHAPES = [
   { id:"flower",  label:"Flower"  },
 ];
 
+// Populate with { id, label, src } when wallpaper resources are ready
+// e.g. { id:"w1", label:"Forest", src:"/wallpapers/forest.jpg" }
+const WALLPAPERS = [];
+
 const C = {
   bg:"#f8f5f1", panel:"#f3ede8", border:"#e6ddd6",
   accent:"#c4a090", text:"#78706a", muted:"#b5aca5",
@@ -36,7 +40,6 @@ function clipShape(ctx, shape) {
       ctx.closePath(); break;
     }
     case "star": {
-      // 깔끔한 5각 별 — outer/inner 점 교차
       const pts=5, outer=1, inner=0.4;
       for(let i=0;i<pts*2;i++){
         const a=(i*Math.PI)/pts - Math.PI/2;
@@ -47,13 +50,11 @@ function clipShape(ctx, shape) {
       ctx.closePath(); break;
     }
     case "heart": {
-      // 좌우 대칭 하트 — 아래 뾰족, 위 두 봉우리
-      // 중심 (0,0), 위로 ±0.5, 아래로 1
-      ctx.moveTo(0, 1);                              // 아래 끝
-      ctx.bezierCurveTo(-0.1, 0.6, -1, 0.4, -1, -0.2);  // 왼쪽 곡선
-      ctx.bezierCurveTo(-1, -0.8, -0.5, -1, 0, -0.5);   // 왼쪽 봉우리
-      ctx.bezierCurveTo(0.5, -1, 1, -0.8, 1, -0.2);     // 오른쪽 봉우리
-      ctx.bezierCurveTo(1, 0.4, 0.1, 0.6, 0, 1);        // 오른쪽 곡선
+      ctx.moveTo(0, 1);
+      ctx.bezierCurveTo(-0.1, 0.6, -1, 0.4, -1, -0.2);
+      ctx.bezierCurveTo(-1, -0.8, -0.5, -1, 0, -0.5);
+      ctx.bezierCurveTo(0.5, -1, 1, -0.8, 1, -0.2);
+      ctx.bezierCurveTo(1, 0.4, 0.1, 0.6, 0, 1);
       ctx.closePath(); break;
     }
     case "diamond":
@@ -153,12 +154,25 @@ export default function PunchCut(){
   const [size,setSize]         = useState(25);
   const [open,setOpen]         = useState(true);
   const [ripples,setRipples]   = useState([]);
-  // cropMode: null | "top" | "bot"
   const [cropMode,setCropMode] = useState(null);
   const [previewUrl,setPreviewUrl] = useState(null);
+  const [isMobile,setIsMobile] = useState(()=>window.innerWidth<640);
+  const [mobileOpen,setMobileOpen] = useState(false);
 
   const topSlot=useRef(null), botSlot=useRef(null);
   const topCvs=useRef(null),  botCvs=useRef(null);
+
+  // Mobile detection
+  useEffect(()=>{
+    const h=()=>setIsMobile(window.innerWidth<640);
+    window.addEventListener("resize",h);
+    return ()=>window.removeEventListener("resize",h);
+  },[]);
+
+  // Auto-collapse mobile panel when entering crop mode
+  useEffect(()=>{
+    if(cropMode) setMobileOpen(false);
+  },[cropMode]);
 
   const draw=useCallback((slot)=>{
     const cvs=slot==="top"?topCvs.current:botCvs.current;
@@ -193,11 +207,30 @@ export default function PunchCut(){
       const img=new Image();
       img.onload=()=>{
         setImgs(p=>({...p,[slot]:img}));
-        setCropMode(slot); // 삽입 즉시 크롭 모드
+        setCropMode(slot);
       };
       img.src=ev.target.result;
     };
     reader.readAsDataURL(file);
+  }
+
+  function loadImgFromUrl(url,slot){
+    const img=new Image();
+    img.crossOrigin="anonymous";
+    img.onload=()=>{
+      setImgs(p=>({...p,[slot]:img}));
+      setCropMode(slot);
+    };
+    img.onerror=()=>{
+      // Retry without CORS (for same-origin assets)
+      const img2=new Image();
+      img2.onload=()=>{
+        setImgs(p=>({...p,[slot]:img2}));
+        setCropMode(slot);
+      };
+      img2.src=url;
+    };
+    img.src=url;
   }
 
   function applyCrop(slot,dataUrl){
@@ -223,12 +256,34 @@ export default function PunchCut(){
     setTimeout(()=>setRipples(p=>p.filter(r=>r.id!==id+1)),600);
   }
 
+  function sprinkle(){
+    if(!imgs.top&&!imgs.bot) return;
+    const COUNT=15;
+    // Generate shared normalized positions so holes align across both slots
+    const positions=Array.from({length:COUNT},()=>({nx:Math.random(),ny:Math.random()}));
+    const id0=Date.now();
+    const newHoles=[];
+    ["top","bot"].forEach((slot,si)=>{
+      if(!imgs[slot]) return;
+      const el=slot==="top"?topSlot.current:botSlot.current;
+      if(!el) return;
+      const W=el.clientWidth, H=el.clientHeight;
+      positions.forEach(({nx,ny},i)=>{
+        const margin=size/2;
+        const x=margin+(W-size)*nx;
+        const y=margin+(H-size)*ny;
+        newHoles.push({id:id0+si*1000+i,slot,x,y,shape,size});
+      });
+    });
+    setHoles(p=>[...p,...newHoles]);
+  }
+
   function exportImg(){
     const tC=topCvs.current,bC=botCvs.current;
     const tE=topSlot.current,bE=botSlot.current;
     if(!tE||!bE) return;
     const W=tE.clientWidth,tH=tE.clientHeight,bH=bE.clientHeight;
-    const SC=4; // 4x resolution
+    const SC=4;
     const out=document.createElement("canvas");
     out.width=W*SC; out.height=(tH+bH)*SC;
     const ctx=out.getContext("2d");
@@ -250,8 +305,88 @@ export default function PunchCut(){
     boxShadow:active?"0 2px 8px rgba(196,160,144,0.15)":"none",
   });
 
+  const hasAnyImg = !!(imgs.top||imgs.bot);
+
+  // ── Shared control panels ─────────────────────────────────
+  const ShapeGrid = ()=>(
+    <div>
+      <Lbl>Punch Shape</Lbl>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,marginTop:8}}>
+        {SHAPES.map(s=>{
+          const active=shape===s.id;
+          return(
+            <button key={s.id} onClick={()=>setShape(s.id)} style={{
+              ...sbtn(active),aspectRatio:"1",
+              display:"flex",flexDirection:"column",
+              alignItems:"center",justifyContent:"center",gap:4,padding:"6px 2px",
+            }}>
+              <ShapeIcon shape={s.id} active={active}/>
+              <span style={{fontSize:7,fontFamily:"'Jost',sans-serif",letterSpacing:0.8,color:active?C.accent:C.muted}}>{s.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const SizeSlider = ()=>(
+    <div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
+        <Lbl style={{marginBottom:0}}>Size</Lbl>
+        <span style={{fontFamily:"'Jost',sans-serif",fontSize:11,color:C.accent}}>{size}px</span>
+      </div>
+      <input type="range" min="1" max="50" value={size} onChange={e=>setSize(+e.target.value)}/>
+      <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+        <span style={{fontFamily:"'Jost',sans-serif",fontSize:9,color:C.muted}}>small</span>
+        <span style={{fontFamily:"'Jost',sans-serif",fontSize:9,color:C.muted}}>large</span>
+      </div>
+    </div>
+  );
+
+  const ActionButtons = ()=>(
+    <div style={{display:"flex",flexDirection:"column",gap:7}}>
+      <div style={{display:"flex",gap:7}}>
+        <button onClick={()=>setHoles(p=>p.slice(0,-1))} style={{
+          flex:1,padding:"9px 0",
+          background:C.white,border:`1px solid ${C.border}`,
+          borderRadius:8,cursor:"pointer",
+          display:"flex",alignItems:"center",justifyContent:"center",gap:5,
+          fontFamily:"'Jost',sans-serif",fontSize:9,color:C.muted,letterSpacing:1,
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/>
+            <line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/>
+          </svg>
+          Undo
+        </button>
+        <button onClick={()=>setHoles([])} style={{
+          flex:1,padding:"9px 0",
+          background:"transparent",border:`1px solid ${C.border}`,
+          borderRadius:8,cursor:"pointer",
+          fontFamily:"'Jost',sans-serif",fontSize:9,color:C.muted,letterSpacing:1,
+        }}>Reset</button>
+      </div>
+      <button onClick={sprinkle} style={{
+        width:"100%",padding:"9px 0",
+        background:hasAnyImg?"rgba(196,160,144,0.1)":"transparent",
+        border:`1.5px solid ${hasAnyImg?C.accent:C.border}`,
+        borderRadius:8,cursor:hasAnyImg?"pointer":"default",
+        fontFamily:"'Jost',sans-serif",fontSize:9,
+        color:hasAnyImg?C.accent:C.muted,letterSpacing:1.5,
+        display:"flex",alignItems:"center",justifyContent:"center",gap:6,
+        opacity:hasAnyImg?1:0.5,transition:"all 0.15s",
+      }}>
+        <span style={{fontSize:11}}>✦</span> Sprinkle
+      </button>
+    </div>
+  );
+
   return(
-    <div style={{display:"flex",height:"100vh",background:C.bg,overflow:"hidden"}}>
+    <div style={{
+      display:"flex",
+      flexDirection:isMobile?"column":"row",
+      height:"100dvh",background:C.bg,overflow:"hidden",
+    }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@300;400&display=swap');
         @keyframes rpl{from{opacity:.7;transform:scale(.2)}to{opacity:0;transform:scale(2.2)}}
@@ -260,101 +395,58 @@ export default function PunchCut(){
         *{box-sizing:border-box}
       `}</style>
 
-      {/* SIDEBAR */}
-      <div style={{
-        width:open?238:40,minWidth:open?238:40,
-        background:C.panel,borderRight:`1px solid ${C.border}`,
-        display:"flex",flexDirection:"column",
-        transition:"width .3s ease,min-width .3s ease",
-        overflow:"hidden",flexShrink:0,position:"relative",
-      }}>
-        <button onClick={()=>setOpen(o=>!o)} style={{
-          position:"absolute",top:13,right:9,zIndex:20,
-          width:22,height:22,borderRadius:"50%",
-          border:`1px solid ${C.border}`,background:C.white,
-          color:C.muted,fontSize:13,cursor:"pointer",
-          display:"flex",alignItems:"center",justifyContent:"center",
-          boxShadow:"0 1px 4px rgba(0,0,0,.06)",
-        }}>{open?"‹":"›"}</button>
-
+      {/* ── DESKTOP SIDEBAR ── */}
+      {!isMobile&&(
         <div style={{
-          opacity:open?1:0,transition:"opacity .18s",
-          pointerEvents:open?"auto":"none",
-          display:"flex",flexDirection:"column",gap:18,
-          padding:"16px 14px",overflowY:"auto",flex:1,minWidth:238,
+          width:open?238:40,minWidth:open?238:40,
+          background:C.panel,borderRight:`1px solid ${C.border}`,
+          display:"flex",flexDirection:"column",
+          transition:"width .3s ease,min-width .3s ease",
+          overflow:"hidden",flexShrink:0,position:"relative",
         }}>
-          <div style={{paddingTop:2,paddingRight:28}}>
-            <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:22,color:C.dark,letterSpacing:2,fontWeight:300}}>Punch Cut</div>
-            <div style={{fontFamily:"'Jost',sans-serif",fontSize:8,color:C.muted,letterSpacing:3,marginTop:2,textTransform:"uppercase"}}>photo editor</div>
-          </div>
-          <Sep/>
-          <div>
-            <Lbl>Punch Shape</Lbl>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6,marginTop:10}}>
-              {SHAPES.map(s=>{
-                const active=shape===s.id;
-                return(
-                  <button key={s.id} onClick={()=>setShape(s.id)} style={{
-                    ...sbtn(active),aspectRatio:"1",
-                    display:"flex",flexDirection:"column",
-                    alignItems:"center",justifyContent:"center",gap:5,padding:"7px 2px",
-                  }}>
-                    <ShapeIcon shape={s.id} active={active}/>
-                    <span style={{fontSize:8,fontFamily:"'Jost',sans-serif",letterSpacing:1,color:active?C.accent:C.muted}}>{s.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <Sep/>
-          <div>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:10}}>
-              <Lbl style={{marginBottom:0}}>Size</Lbl>
-              <span style={{fontFamily:"'Jost',sans-serif",fontSize:11,color:C.accent}}>{size}px</span>
-            </div>
-            <input type="range" min="1" max="50" value={size} onChange={e=>setSize(+e.target.value)}/>
-            <div style={{display:"flex",justifyContent:"space-between",marginTop:5}}>
-              <span style={{fontFamily:"'Jost',sans-serif",fontSize:9,color:C.muted}}>small</span>
-              <span style={{fontFamily:"'Jost',sans-serif",fontSize:9,color:C.muted}}>large</span>
-            </div>
-          </div>
-          <Sep/>
-          <div style={{display:"flex",gap:8}}>
-            <button onClick={()=>setHoles(p=>p.slice(0,-1))} style={{
-              flex:1,padding:"9px 0",
-              background:C.white,border:`1px solid ${C.border}`,
-              borderRadius:8,cursor:"pointer",
-              display:"flex",alignItems:"center",justifyContent:"center",gap:5,
-              fontFamily:"'Jost',sans-serif",fontSize:9,color:C.muted,letterSpacing:1,
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.muted} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/>
-                <line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/>
-              </svg>
-              Undo
-            </button>
-            <button onClick={()=>setHoles([])} style={{
-              flex:1,padding:"9px 0",
-              background:"transparent",border:`1px solid ${C.border}`,
-              borderRadius:8,cursor:"pointer",
-              fontFamily:"'Jost',sans-serif",fontSize:9,color:C.muted,letterSpacing:1,
-            }}>Reset</button>
-          </div>
-        </div>
-        {!open&&(
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",paddingTop:50,gap:10}}>
-            {[C.accent,C.border,C.border].map((c,i)=>(
-              <div key={i} style={{width:6,height:6,borderRadius:"50%",background:c}}/>
-            ))}
-          </div>
-        )}
-      </div>
+          <button onClick={()=>setOpen(o=>!o)} style={{
+            position:"absolute",top:13,right:9,zIndex:20,
+            width:22,height:22,borderRadius:"50%",
+            border:`1px solid ${C.border}`,background:C.white,
+            color:C.muted,fontSize:13,cursor:"pointer",
+            display:"flex",alignItems:"center",justifyContent:"center",
+            boxShadow:"0 1px 4px rgba(0,0,0,.06)",
+          }}>{open?"‹":"›"}</button>
 
-      {/* MAIN */}
+          <div style={{
+            opacity:open?1:0,transition:"opacity .18s",
+            pointerEvents:open?"auto":"none",
+            display:"flex",flexDirection:"column",gap:18,
+            padding:"16px 14px",overflowY:"auto",flex:1,minWidth:238,
+          }}>
+            <div style={{paddingTop:2,paddingRight:28}}>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:22,color:C.dark,letterSpacing:2,fontWeight:300}}>Punch Cut</div>
+              <div style={{fontFamily:"'Jost',sans-serif",fontSize:8,color:C.muted,letterSpacing:3,marginTop:2,textTransform:"uppercase"}}>photo editor</div>
+            </div>
+            <Sep/>
+            <ShapeGrid/>
+            <Sep/>
+            <SizeSlider/>
+            <Sep/>
+            <ActionButtons/>
+          </div>
+
+          {!open&&(
+            <div style={{display:"flex",flexDirection:"column",alignItems:"center",paddingTop:50,gap:10}}>
+              {[C.accent,C.border,C.border].map((c,i)=>(
+                <div key={i} style={{width:6,height:6,borderRadius:"50%",background:c}}/>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── MAIN CANVAS ── */}
       <div style={{
         flex:1,display:"flex",flexDirection:"column",
-        alignItems:"center",justifyContent:"center",
-        padding:24,overflow:"auto",background:C.bg,
+        alignItems:"center",justifyContent:isMobile?"flex-start":"center",
+        padding:isMobile?"16px 12px 10px":24,
+        overflow:"auto",background:C.bg,
         backgroundImage:"radial-gradient(circle at 65% 25%,#f4ece6 0%,transparent 50%),radial-gradient(circle at 20% 80%,#edf0f5 0%,transparent 50%)",
       }}>
         <div style={{
@@ -363,7 +455,7 @@ export default function PunchCut(){
           border:`1px solid ${C.border}`,position:"relative",
         }}>
           <Slot slot="top" slotRef={topSlot} cvsRef={topCvs} img={imgs.top}
-            ripples={ripples} onPunch={punch} onLoad={loadImg}
+            ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
             isCropping={cropMode==="top"}
             onApplyCrop={(d)=>applyCrop("top",d)}
             onCancelCrop={()=>setCropMode(null)}/>
@@ -377,7 +469,7 @@ export default function PunchCut(){
             }}>· punch cut ·</div>
           </div>
           <Slot slot="bot" slotRef={botSlot} cvsRef={botCvs} img={imgs.bot}
-            ripples={ripples} onPunch={punch} onLoad={loadImg}
+            ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
             isCropping={cropMode==="bot"}
             onApplyCrop={(d)=>applyCrop("bot",d)}
             onCancelCrop={()=>setCropMode(null)}/>
@@ -392,7 +484,7 @@ export default function PunchCut(){
             : (!imgs.top&&!imgs.bot ? "Add an image to get started" : "Click the image to punch a hole ✦")}
         </p>
 
-        {(imgs.top||imgs.bot)&&!cropMode&&(
+        {!isMobile&&hasAnyImg&&!cropMode&&(
           <button onClick={exportImg} style={{
             marginTop:16,background:C.accent,border:"none",color:"#fff",
             padding:"12px 40px",borderRadius:50,
@@ -403,6 +495,79 @@ export default function PunchCut(){
         )}
       </div>
 
+      {/* ── MOBILE BOTTOM PANEL ── */}
+      {isMobile&&(
+        <div style={{
+          background:C.panel,
+          borderTop:`1px solid ${C.border}`,
+          height:mobileOpen?330:54,
+          minHeight:mobileOpen?330:54,
+          transition:"height 0.3s cubic-bezier(.4,0,.2,1),min-height 0.3s cubic-bezier(.4,0,.2,1)",
+          overflow:"hidden",
+          flexShrink:0,
+          position:"relative",
+        }}>
+          {/* Handle / header row */}
+          <div
+            onClick={()=>setMobileOpen(o=>!o)}
+            style={{
+              height:54,display:"flex",
+              alignItems:"center",justifyContent:"space-between",
+              padding:"0 16px",cursor:"pointer",userSelect:"none",
+            }}
+          >
+            <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:16,color:C.dark,letterSpacing:2}}>
+              Punch Cut
+            </div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              {/* Active shape preview */}
+              <div style={{
+                width:28,height:28,borderRadius:6,
+                background:C.faint,border:`1px solid ${C.border}`,
+                display:"flex",alignItems:"center",justifyContent:"center",
+              }}>
+                <ShapeIcon shape={shape} active={true}/>
+              </div>
+              <div style={{
+                width:18,height:18,display:"flex",flexDirection:"column",
+                alignItems:"center",justifyContent:"center",gap:3,
+              }}>
+                <div style={{width:18,height:2,background:C.muted,borderRadius:1,transition:"transform 0.3s",transform:mobileOpen?"rotate(-45deg) translate(-1px,2px)":"none"}}/>
+                <div style={{width:18,height:2,background:C.muted,borderRadius:1,transition:"opacity 0.3s",opacity:mobileOpen?0:1}}/>
+                <div style={{width:18,height:2,background:C.muted,borderRadius:1,transition:"transform 0.3s",transform:mobileOpen?"rotate(45deg) translate(-1px,-2px)":"none"}}/>
+              </div>
+            </div>
+          </div>
+
+          {/* Scrollable panel content */}
+          <div style={{
+            padding:"0 14px 16px",
+            overflowY:"auto",
+            height:276,
+            display:"flex",flexDirection:"column",gap:12,
+          }}>
+            <ShapeGrid/>
+            <Sep/>
+            <SizeSlider/>
+            <Sep/>
+            <ActionButtons/>
+            {hasAnyImg&&!cropMode&&(
+              <>
+                <Sep/>
+                <button onClick={exportImg} style={{
+                  background:C.accent,border:"none",color:"#fff",
+                  padding:"12px 0",borderRadius:50,
+                  fontFamily:"'Jost',sans-serif",fontSize:10,letterSpacing:3,
+                  textTransform:"uppercase",cursor:"pointer",
+                  boxShadow:"0 6px 20px rgba(196,160,144,.4)",
+                }}>↓ Save</button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── PREVIEW MODAL ── */}
       {previewUrl&&(
         <div onClick={()=>setPreviewUrl(null)} style={{
           position:"fixed",inset:0,zIndex:100,
@@ -444,7 +609,7 @@ export default function PunchCut(){
 }
 
 // ── Slot ─────────────────────────────────────────────────
-function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,isCropping,onApplyCrop,onCancelCrop}){
+function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,isCropping,onApplyCrop,onCancelCrop}){
   const hasImg=!!img;
   const SLOT_W=300;
   const slotH=hasImg ? Math.round(SLOT_W*img.naturalHeight/img.naturalWidth) : 240;
@@ -488,9 +653,8 @@ function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,isCropping,onApply
         color:hasImg?"rgba(255,255,255,0.5)":C.muted,
       }}>{slot==="top"?"Top":"Bottom"}</div>
 
-      {!hasImg&&<UploadZone slot={slot} onFile={f=>onLoad(f,slot)}/>}
+      {!hasImg&&<UploadZone slot={slot} onFile={f=>onLoad(f,slot)} onUrl={url=>onLoadUrl(url,slot)}/>}
 
-      {/* iOS-style crop overlay */}
       {isCropping&&hasImg&&(
         <CropOverlay
           img={img}
@@ -504,13 +668,13 @@ function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,isCropping,onApply
   );
 }
 
-// ── CropOverlay: iOS-style edge handles ──────────────────
+// ── CropOverlay ───────────────────────────────────────────
+// Global window listeners allow dragging outside the slot boundary
 function CropOverlay({img,slotW,slotH,onApply,onCancel}){
-  // crop rect in px, relative to slot
   const [rect,setRect]=useState({x:0,y:0,w:slotW,h:slotH});
-  const dragRef=useRef(null); // {edge, startX,startY, startRect}
+  const dragRef=useRef(null);
 
-  const HANDLE=18; // handle hit area
+  const HANDLE=18;
   const MIN=40;
 
   function getEdge(cx,cy,r){
@@ -527,47 +691,58 @@ function CropOverlay({img,slotW,slotH,onApply,onCancel}){
     return null;
   }
 
-  function clientXY(e){
-    const src=e.touches?e.touches[0]:e;
-    return {cx:src.clientX,cy:src.clientY};
-  }
+  // Attach move/up on window so dragging works outside slot bounds
+  useEffect(()=>{
+    function globalMove(e){
+      if(!dragRef.current) return;
+      if(e.cancelable) e.preventDefault();
+      const {edge,startX,startY,startRect}=dragRef.current;
+      const src=e.touches?e.touches[0]:e;
+      const cx=src.clientX, cy=src.clientY;
+      const dx=cx-startX, dy=cy-startY;
+      let {x,y,w,h}=startRect;
+      if(edge==="l"||edge==="tl"||edge==="bl"){
+        const nx=Math.max(0,Math.min(x+dx,x+w-MIN));
+        w=w+(x-nx); x=nx;
+      }
+      if(edge==="r"||edge==="tr"||edge==="br"){
+        w=Math.max(MIN,Math.min(w+dx,slotW-x));
+      }
+      if(edge==="t"||edge==="tl"||edge==="tr"){
+        const ny=Math.max(0,Math.min(y+dy,y+h-MIN));
+        h=h+(y-ny); y=ny;
+      }
+      if(edge==="b"||edge==="bl"||edge==="br"){
+        h=Math.max(MIN,Math.min(h+dy,slotH-y));
+      }
+      setRect({x,y,w,h});
+    }
+    function globalUp(){
+      dragRef.current=null;
+    }
+    window.addEventListener("mousemove",globalMove);
+    window.addEventListener("mouseup",globalUp);
+    window.addEventListener("touchmove",globalMove,{passive:false});
+    window.addEventListener("touchend",globalUp);
+    return ()=>{
+      window.removeEventListener("mousemove",globalMove);
+      window.removeEventListener("mouseup",globalUp);
+      window.removeEventListener("touchmove",globalMove);
+      window.removeEventListener("touchend",globalUp);
+    };
+  },[slotW,slotH]);
 
   function onDown(e){
     e.stopPropagation(); e.preventDefault();
     const el=e.currentTarget;
     const elRect=el.getBoundingClientRect();
-    const {cx,cy}=clientXY(e);
+    const src=e.touches?e.touches[0]:e;
+    const cx=src.clientX, cy=src.clientY;
     const lx=cx-elRect.left, ly=cy-elRect.top;
     const edge=getEdge(lx,ly,rect);
     if(!edge) return;
     dragRef.current={edge,startX:cx,startY:cy,startRect:{...rect}};
   }
-
-  function onMove(e){
-    if(!dragRef.current) return;
-    e.stopPropagation(); e.preventDefault();
-    const {edge,startX,startY,startRect}=dragRef.current;
-    const {cx,cy}=clientXY(e);
-    const dx=cx-startX, dy=cy-startY;
-    let {x,y,w,h}=startRect;
-    if(edge==="l"||edge==="tl"||edge==="bl"){
-      const nx=Math.max(0,Math.min(x+dx,x+w-MIN));
-      w=w+(x-nx); x=nx;
-    }
-    if(edge==="r"||edge==="tr"||edge==="br"){
-      w=Math.max(MIN,Math.min(w+dx,slotW-x));
-    }
-    if(edge==="t"||edge==="tl"||edge==="tr"){
-      const ny=Math.max(0,Math.min(y+dy,y+h-MIN));
-      h=h+(y-ny); y=ny;
-    }
-    if(edge==="b"||edge==="bl"||edge==="br"){
-      h=Math.max(MIN,Math.min(h+dy,slotH-y));
-    }
-    setRect({x,y,w,h});
-  }
-
-  function onUp(e){ dragRef.current=null; }
 
   function doApply(){
     const scaleX=img.naturalWidth/slotW;
@@ -584,17 +759,11 @@ function CropOverlay({img,slotW,slotH,onApply,onCancel}){
   const borderC="rgba(255,255,255,0.9)";
   const dimC="rgba(0,0,0,0.45)";
 
-  // cursor per edge
-  function edgeCursor(edge){
-    return {tl:"nwse-resize",tr:"nesw-resize",bl:"nesw-resize",br:"nwse-resize",
-      t:"ns-resize",b:"ns-resize",l:"ew-resize",r:"ew-resize"}[edge]||"default";
-  }
-
   return(
     <div
       style={{position:"absolute",inset:0,zIndex:20,touchAction:"none"}}
-      onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp}
-      onTouchStart={onDown} onTouchMove={onMove} onTouchEnd={onUp}
+      onMouseDown={onDown}
+      onTouchStart={onDown}
     >
       {/* dim outside crop */}
       <div style={{position:"absolute",left:0,top:0,width:"100%",height:rect.y,background:dimC,pointerEvents:"none"}}/>
@@ -637,7 +806,7 @@ function CropOverlay({img,slotW,slotH,onApply,onCancel}){
         </div>
       ))}
 
-      {/* 버튼 — 항상 슬롯 내부 상단에 고정 */}
+      {/* Cancel / Done buttons */}
       <div style={{
         position:"absolute", top:8, right:8,
         display:"flex", gap:6, zIndex:30,
@@ -670,21 +839,69 @@ function CropOverlay({img,slotW,slotH,onApply,onCancel}){
 }
 
 // ── UploadZone ───────────────────────────────────────────
-function UploadZone({slot,onFile}){
+function UploadZone({slot,onFile,onUrl}){
   const inputRef=useRef(null);
+  const [tab,setTab]=useState("upload");
+
   return(
     <div style={{position:"absolute",inset:0,zIndex:5,
       display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:10}}>
-      <div onClick={()=>inputRef.current?.click()} style={{
-        width:54,height:54,borderRadius:"50%",
-        border:`1px dashed #c8b9b0`,background:"rgba(255,255,255,0.7)",
-        display:"flex",alignItems:"center",justifyContent:"center",
-        fontSize:24,color:"#c4a090",cursor:"pointer",
-      }}>＋</div>
-      <span style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
-        fontSize:13,color:"#b5aca5",letterSpacing:1}}>Tap to add a photo</span>
-      <input ref={inputRef} type="file" accept="image/*" style={{display:"none"}}
-        onChange={e=>{if(e.target.files?.[0]) onFile(e.target.files[0]); e.target.value="";}}/>
+
+      {/* Tab switcher — always visible so users know wallpapers exist */}
+      <div style={{display:"flex",gap:0,background:C.faint,borderRadius:20,padding:2}}>
+        {["upload","wallpapers"].map(t=>(
+          <button key={t} onClick={()=>setTab(t)} style={{
+            padding:"4px 12px",borderRadius:18,border:"none",cursor:"pointer",
+            fontFamily:"'Jost',sans-serif",fontSize:8,letterSpacing:1.5,
+            textTransform:"uppercase",transition:"all 0.15s",
+            background:tab===t?C.white:"transparent",
+            color:tab===t?C.accent:C.muted,
+            boxShadow:tab===t?"0 1px 4px rgba(0,0,0,0.08)":"none",
+          }}>{t}</button>
+        ))}
+      </div>
+
+      {tab==="upload"&&(
+        <>
+          <div onClick={()=>inputRef.current?.click()} style={{
+            width:54,height:54,borderRadius:"50%",
+            border:`1px dashed #c8b9b0`,background:"rgba(255,255,255,0.7)",
+            display:"flex",alignItems:"center",justifyContent:"center",
+            fontSize:24,color:"#c4a090",cursor:"pointer",
+          }}>＋</div>
+          <span style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
+            fontSize:13,color:"#b5aca5",letterSpacing:1}}>Tap to add a photo</span>
+          <input ref={inputRef} type="file" accept="image/*" style={{display:"none"}}
+            onChange={e=>{if(e.target.files?.[0]) onFile(e.target.files[0]); e.target.value="";}}/>
+        </>
+      )}
+
+      {tab==="wallpapers"&&(
+        <div style={{width:"100%",padding:"0 16px",textAlign:"center"}}>
+          {WALLPAPERS.length===0?(
+            <div style={{
+              fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
+              fontSize:12,color:C.muted,letterSpacing:0.5,lineHeight:1.6,
+            }}>
+              Wallpapers coming soon ✦
+            </div>
+          ):(
+            <div style={{
+              display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6,
+              overflowY:"auto",maxHeight:160,
+            }}>
+              {WALLPAPERS.map(w=>(
+                <div key={w.id} onClick={()=>onUrl(w.src)} style={{
+                  aspectRatio:"1",borderRadius:6,overflow:"hidden",cursor:"pointer",
+                  border:`1.5px solid ${C.border}`,transition:"border-color 0.15s",
+                }}>
+                  <img src={w.src} alt={w.label} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
