@@ -43,7 +43,7 @@ SHAPES.forEach(s => {
       _maskCbs.length = 0;
     }
   };
-  img.src = `/icons/${s.id}.png`;
+  img.src = `/masks/${s.id}.png`;
 });
 
 // ── Shape icon — uses PNG via CSS mask-image ──────────────
@@ -53,8 +53,8 @@ function ShapeIcon({shape, active}){
     <div style={{
       width:22, height:22,
       background: f,
-      WebkitMaskImage: `url(/icons/${shape}.png)`,
-      maskImage: `url(/icons/${shape}.png)`,
+      WebkitMaskImage: `url(/masks/${shape}.png)`,
+      maskImage: `url(/masks/${shape}.png)`,
       WebkitMaskSize: 'contain',
       maskSize: 'contain',
       WebkitMaskRepeat: 'no-repeat',
