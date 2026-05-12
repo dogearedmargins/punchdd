@@ -377,7 +377,7 @@ export default function PunchCut(){
         backgroundImage:"radial-gradient(circle at 65% 25%,#f4ece6 0%,transparent 50%),radial-gradient(circle at 20% 80%,#edf0f5 0%,transparent 50%)",
       }}>
         <div style={{
-          width:300,overflow:"visible",
+          width:450,overflow:"visible",
           boxShadow:"0 20px 60px rgba(180,155,145,.2),0 4px 16px rgba(180,155,145,.1)",
           border:`1px solid ${C.border}`,position:"relative",
         }}>
@@ -386,14 +386,7 @@ export default function PunchCut(){
             isCropping={cropMode==="top"}
             onApplyCrop={(d)=>applyCrop("top",d)}
             onCancelCrop={()=>setCropMode(null)}/>
-          <div style={{height:1,background:C.border,position:"relative"}}>
-            <div style={{
-              position:"absolute",left:"50%",top:"50%",
-              transform:"translate(-50%,-50%)",
-              background:C.faint,padding:"2px 12px",
-              fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
-              fontSize:9,color:C.muted,letterSpacing:3,whiteSpace:"nowrap",borderRadius:4,
-            }}>· punch cut ·</div>
+          <div style={{height:1,background:C.border}}/>
           </div>
           <Slot slot="bot" slotRef={botSlot} cvsRef={botCvs} img={imgs.bot}
             ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
@@ -532,7 +525,7 @@ export default function PunchCut(){
 
 function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,isCropping,onApplyCrop,onCancelCrop}){
   const hasImg=!!img;
-  const SLOT_W=300;
+  const SLOT_W=450;
   const slotH=hasImg ? Math.round(SLOT_W*img.naturalHeight/img.naturalWidth) : 240;
 
   return(
