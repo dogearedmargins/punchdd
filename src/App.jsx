@@ -17,31 +17,60 @@ const C = {
   faint:"#ede7e1", white:"#fdfaf8", dark:"#5a5250",
 };
 
-const MASKS = {};
-const _maskCbs = [];
-let _masksReady = false;
-let _loaded = 0;
-SHAPES.forEach(s => {
-  const img = new Image();
-  img.onload = () => {
-    const c = document.createElement('canvas');
-    c.width = img.naturalWidth; c.height = img.naturalHeight;
-    const ctx = c.getContext('2d');
-    ctx.drawImage(img, 0, 0);
-    const d = ctx.getImageData(0, 0, c.width, c.height);
-    for(let i = 0; i < d.data.length; i += 4){
-      d.data[i+3] = Math.round(d.data[i]*0.299 + d.data[i+1]*0.587 + d.data[i+2]*0.114);
+function buildVectorMask(shape, size){
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const ctx = c.getContext('2d');
+  const cx = size/2, cy = size/2, r = size/2 * 0.88;
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  if(shape==='circle'){
+    ctx.arc(cx, cy, r, 0, Math.PI*2);
+  } else if(shape==='diamond'){
+    ctx.moveTo(cx, cy-r);
+    ctx.lineTo(cx+r*0.65, cy);
+    ctx.lineTo(cx, cy+r);
+    ctx.lineTo(cx-r*0.65, cy);
+    ctx.closePath();
+  } else if(shape==='star'){
+    for(let i=0;i<10;i++){
+      const a=(i*Math.PI/5)-Math.PI/2;
+      const d=i%2===0?r:r*0.4;
+      i===0?ctx.moveTo(cx+d*Math.cos(a),cy+d*Math.sin(a)):ctx.lineTo(cx+d*Math.cos(a),cy+d*Math.sin(a));
     }
-    ctx.putImageData(d, 0, 0);
-    MASKS[s.id] = c;
-    if(++_loaded === SHAPES.length){
-      _masksReady = true;
-      _maskCbs.forEach(cb => cb());
-      _maskCbs.length = 0;
+    ctx.closePath();
+  } else if(shape==='heart'){
+    ctx.moveTo(cx, cy+r*0.75);
+    ctx.bezierCurveTo(cx-r*0.05,cy+r*0.2, cx-r*1.1,cy-r*0.3, cx-r*0.5,cy-r*0.65);
+    ctx.bezierCurveTo(cx-r*0.15,cy-r*0.9, cx+r*0.15,cy-r*0.9, cx+r*0.5,cy-r*0.65);
+    ctx.bezierCurveTo(cx+r*1.1,cy-r*0.3, cx+r*0.05,cy+r*0.2, cx,cy+r*0.75);
+    ctx.closePath();
+  } else if(shape==='flower'){
+    const n=5, pr=r*0.52, pc=r*0.36;
+    for(let i=0;i<n;i++){
+      const a=(i/n)*Math.PI*2-Math.PI/2;
+      ctx.moveTo(cx+(pc+pr)*Math.cos(a), cy+(pc+pr)*Math.sin(a));
+      ctx.arc(cx+pc*Math.cos(a), cy+pc*Math.sin(a), pr, 0, Math.PI*2);
     }
-  };
-  img.src = `/icons/${s.id}.png`;
-});
+    ctx.moveTo(cx+r*0.22, cy);
+    ctx.arc(cx, cy, r*0.22, 0, Math.PI*2);
+  } else if(shape==='butterfly'){
+    ctx.moveTo(cx, cy-r*0.05);
+    ctx.bezierCurveTo(cx-r*0.15,cy-r*0.7, cx-r*1.05,cy-r*0.85, cx-r*0.9,cy-r*0.05);
+    ctx.bezierCurveTo(cx-r*0.75,cy+r*0.3, cx-r*0.15,cy+r*0.12, cx,cy-r*0.05);
+    ctx.moveTo(cx, cy-r*0.05);
+    ctx.bezierCurveTo(cx+r*0.15,cy-r*0.7, cx+r*1.05,cy-r*0.85, cx+r*0.9,cy-r*0.05);
+    ctx.bezierCurveTo(cx+r*0.75,cy+r*0.3, cx+r*0.15,cy+r*0.12, cx,cy-r*0.05);
+    ctx.moveTo(cx, cy+r*0.05);
+    ctx.bezierCurveTo(cx-r*0.15,cy+r*0.35, cx-r*0.75,cy+r*0.9, cx-r*0.45,cy+r*0.6);
+    ctx.bezierCurveTo(cx-r*0.2,cy+r*0.35, cx-r*0.05,cy+r*0.2, cx,cy+r*0.05);
+    ctx.moveTo(cx, cy+r*0.05);
+    ctx.bezierCurveTo(cx+r*0.15,cy+r*0.35, cx+r*0.75,cy+r*0.9, cx+r*0.45,cy+r*0.6);
+    ctx.bezierCurveTo(cx+r*0.2,cy+r*0.35, cx+r*0.05,cy+r*0.2, cx,cy+r*0.05);
+  }
+  ctx.fill('evenodd');
+  return c;
+}
 
 function ShapeIcon({shape, active}){
   const f = active ? C.accent : C.muted;
@@ -106,17 +135,14 @@ export default function PunchCut(){
     if(!my&&!opp) return;
 
     holes.filter(h=>h.slot===slot).forEach(h=>{
-      const mask=MASKS[h.shape];
-      if(!mask){
-        if(!_masksReady) _maskCbs.push(()=>{ drawRef.current?.("top"); drawRef.current?.("bot"); });
-        return;
-      }
       const s=h.size;
+      const mask=buildVectorMask(h.shape, s*dpr);
       const hx=h.x-s/2, hy=h.y-s/2;
-            const off=document.createElement('canvas');
+      const off=document.createElement('canvas');
       off.width=s*dpr; off.height=s*dpr;
       const offCtx=off.getContext('2d');
-
+      offCtx.imageSmoothingEnabled=true;
+      offCtx.imageSmoothingQuality='high';
       if(opp){
         offCtx.drawImage(opp,
           hx/W*opp.naturalWidth,  hy/H*opp.naturalHeight,
@@ -133,10 +159,8 @@ export default function PunchCut(){
         );
         offCtx.restore();
       }
-
       offCtx.globalCompositeOperation='destination-in';
       offCtx.drawImage(mask, 0, 0, s*dpr, s*dpr);
-
       ctx.drawImage(off, hx, hy, s, s);
     });
   },[imgs,holes]);
@@ -230,12 +254,12 @@ export default function PunchCut(){
   }
 
   const sbtn=(active)=>({
-    background:active?"#fdf5f2":C.white,
-    border:`1.5px solid ${active?C.accent:C.border}`,
+    background:active?"rgba(160,196,224,0.18)":C.white,
+    border:`1.5px solid ${active?"#a0c4e0":C.border}`,
     borderRadius:8,cursor:"pointer",
     fontFamily:"'Jost',sans-serif",fontSize:9,letterSpacing:1,
-    color:active?C.accent:C.muted,transition:"all 0.15s",
-    boxShadow:active?"0 2px 8px rgba(196,160,144,0.15)":"none",
+    color:active?"#6a9ec0":C.muted,transition:"all 0.15s",
+    boxShadow:active?"0 2px 8px rgba(160,196,224,0.2)":"none",
   });
 
   const hasAnyImg = !!(imgs.top||imgs.bot);
@@ -253,7 +277,7 @@ export default function PunchCut(){
               alignItems:"center",justifyContent:"center",gap:4,padding:"6px 2px",
             }}>
               <ShapeIcon shape={s.id} active={active}/>
-              <span style={{fontSize:7,fontFamily:"'Jost',sans-serif",letterSpacing:0.8,color:active?C.accent:C.muted}}>{s.label}</span>
+              <span style={{fontSize:7,fontFamily:"'Jost',sans-serif",letterSpacing:0.8,color:active?"#6a9ec0":C.muted}}>{s.label}</span>
             </button>
           );
         })}
@@ -330,7 +354,8 @@ export default function PunchCut(){
       {!isMobile&&(
         <div style={{
           width:open?238:40,minWidth:open?238:40,
-          background:C.panel,borderRight:`1px solid ${C.border}`,
+          background:`url('/sidebar-bg.png') center/cover no-repeat, ${C.panel}`,
+          borderRight:`1px solid ${C.border}`,
           display:"flex",flexDirection:"column",
           transition:"width .3s ease,min-width .3s ease",
           overflow:"hidden",flexShrink:0,position:"relative",
@@ -376,21 +401,25 @@ export default function PunchCut(){
         flex:1,display:"flex",flexDirection:"column",
         alignItems:"center",justifyContent:isMobile?"flex-start":"center",
         padding:isMobile?"16px 12px 10px":24,
-        overflow:"auto",background:C.bg,
-        backgroundImage:"radial-gradient(circle at 65% 25%,#f4ece6 0%,transparent 50%),radial-gradient(circle at 20% 80%,#edf0f5 0%,transparent 50%)",
+        overflow:"auto",background:"#8499b5",
       }}>
         <div style={{
-          width:450,overflow:"visible",
-          boxShadow:"0 20px 60px rgba(180,155,145,.2),0 4px 16px rgba(180,155,145,.1)",
-          border:`1px solid ${C.border}`,position:"relative",
+          width:400,overflow:"visible",position:"relative",
+          background:C.bg,
+          WebkitMaskImage:"radial-gradient(circle at 50% 0%,transparent 7px,#000 7px),radial-gradient(circle at 50% 100%,transparent 7px,#000 7px),radial-gradient(circle at 0% 50%,transparent 7px,#000 7px),radial-gradient(circle at 100% 50%,transparent 7px,#000 7px),linear-gradient(#000,#000)",
+          maskImage:"radial-gradient(circle at 50% 0%,transparent 7px,#000 7px),radial-gradient(circle at 50% 100%,transparent 7px,#000 7px),radial-gradient(circle at 0% 50%,transparent 7px,#000 7px),radial-gradient(circle at 100% 50%,transparent 7px,#000 7px),linear-gradient(#000,#000)",
+          WebkitMaskSize:"14px 14px,14px 14px,14px 14px,14px 14px,calc(100% - 14px) calc(100% - 14px)",
+          maskSize:"14px 14px,14px 14px,14px 14px,14px 14px,calc(100% - 14px) calc(100% - 14px)",
+          WebkitMaskPosition:"top,bottom,left,right,center",
+          maskPosition:"top,bottom,left,right,center",
+          WebkitMaskRepeat:"repeat-x,repeat-x,repeat-y,repeat-y,no-repeat",
+          maskRepeat:"repeat-x,repeat-x,repeat-y,repeat-y,no-repeat",
         }}>
           <Slot slot="top" slotRef={topSlot} cvsRef={topCvs} img={imgs.top}
             ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
             isCropping={cropMode==="top"}
             onApplyCrop={(d)=>applyCrop("top",d)}
             onCancelCrop={()=>setCropMode(null)}/>
-          <div style={{height:1,background:C.border}}/>
-          </div>
           <Slot slot="bot" slotRef={botSlot} cvsRef={botCvs} img={imgs.bot}
             ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
             isCropping={cropMode==="bot"}
@@ -400,7 +429,7 @@ export default function PunchCut(){
 
         <p style={{
           marginTop:14,fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
-          fontSize:13,color:C.muted,letterSpacing:1,textAlign:"center",
+          fontSize:13,color:"#d8e4ef",letterSpacing:1,textAlign:"center",
         }}>
           {cropMode
             ? "Drag edges or corners to crop ✦"
@@ -425,18 +454,13 @@ export default function PunchCut(){
           height:mobileOpen?330:54,
           minHeight:mobileOpen?330:54,
           transition:"height 0.3s cubic-bezier(.4,0,.2,1),min-height 0.3s cubic-bezier(.4,0,.2,1)",
-          overflow:"hidden",
-          flexShrink:0,
-          position:"relative",
+          overflow:"hidden",flexShrink:0,position:"relative",
         }}>
-          <div
-            onClick={()=>setMobileOpen(o=>!o)}
-            style={{
-              height:54,display:"flex",
-              alignItems:"center",justifyContent:"space-between",
-              padding:"0 16px",cursor:"pointer",userSelect:"none",
-            }}
-          >
+          <div onClick={()=>setMobileOpen(o=>!o)} style={{
+            height:54,display:"flex",
+            alignItems:"center",justifyContent:"space-between",
+            padding:"0 16px",cursor:"pointer",userSelect:"none",
+          }}>
             <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:16,color:C.dark,letterSpacing:2}}>
               Punch Cut
             </div>
@@ -448,23 +472,14 @@ export default function PunchCut(){
               }}>
                 <ShapeIcon shape={shape} active={true}/>
               </div>
-              <div style={{
-                width:18,height:18,display:"flex",flexDirection:"column",
-                alignItems:"center",justifyContent:"center",gap:3,
-              }}>
+              <div style={{width:18,height:18,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:3}}>
                 <div style={{width:18,height:2,background:C.muted,borderRadius:1,transition:"transform 0.3s",transform:mobileOpen?"rotate(-45deg) translate(-1px,2px)":"none"}}/>
                 <div style={{width:18,height:2,background:C.muted,borderRadius:1,transition:"opacity 0.3s",opacity:mobileOpen?0:1}}/>
                 <div style={{width:18,height:2,background:C.muted,borderRadius:1,transition:"transform 0.3s",transform:mobileOpen?"rotate(45deg) translate(-1px,-2px)":"none"}}/>
               </div>
             </div>
           </div>
-
-          <div style={{
-            padding:"0 14px 16px",
-            overflowY:"auto",
-            height:276,
-            display:"flex",flexDirection:"column",gap:12,
-          }}>
+          <div style={{padding:"0 14px 16px",overflowY:"auto",height:276,display:"flex",flexDirection:"column",gap:12}}>
             <ShapeGrid/>
             <Sep/>
             <SizeSlider/>
@@ -528,13 +543,13 @@ export default function PunchCut(){
 
 function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,isCropping,onApplyCrop,onCancelCrop}){
   const hasImg=!!img;
-  const SLOT_W=450;
+  const SLOT_W=400;
   const slotH=hasImg ? Math.round(SLOT_W*img.naturalHeight/img.naturalWidth) : 240;
 
   return(
     <div ref={slotRef} style={{
       position:"relative",width:"100%",height:slotH,
-      overflow:"hidden",
+      overflow:isCropping?"visible":"hidden",
       background:hasImg?"transparent":C.faint,
       cursor:isCropping?"default":(hasImg?"crosshair":"pointer"),
     }}
@@ -547,12 +562,10 @@ function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,isCroppi
         position:"absolute",inset:0,width:"100%",height:"100%",
         objectFit:"fill",pointerEvents:"none",
       }}/>}
-
       <canvas ref={cvsRef} style={{
         position:"absolute",inset:0,width:"100%",height:"100%",
         pointerEvents:"none",zIndex:2,
       }}/>
-
       {ripples.filter(r=>r.slot===slot).map(r=>(
         <div key={r.id} style={{
           position:"absolute",width:r.size,height:r.size,
@@ -562,24 +575,9 @@ function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,isCroppi
           animation:"rpl 0.6s ease-out forwards",
         }}/>
       ))}
-
-      <div style={{
-        position:"absolute",top:10,left:12,zIndex:4,
-        fontFamily:"serif",fontStyle:"italic",
-        fontSize:10,letterSpacing:3,pointerEvents:"none",
-        color:hasImg?"rgba(255,255,255,0.5)":C.muted,
-      }}>{slot==="top"?"Top":"Bottom"}</div>
-
       {!hasImg&&<UploadZone slot={slot} onFile={f=>onLoad(f,slot)} onUrl={url=>onLoadUrl(url,slot)}/>}
-
       {isCropping&&hasImg&&(
-        <CropOverlay
-          img={img}
-          slotW={SLOT_W}
-          slotH={slotH}
-          onApply={onApplyCrop}
-          onCancel={onCancelCrop}
-        />
+        <CropOverlay img={img} slotW={SLOT_W} slotH={slotH} onApply={onApplyCrop} onCancel={onCancelCrop}/>
       )}
     </div>
   );
@@ -588,21 +586,15 @@ function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,isCroppi
 function CropOverlay({img,slotW,slotH,onApply,onCancel}){
   const [rect,setRect]=useState({x:0,y:0,w:slotW,h:slotH});
   const dragRef=useRef(null);
-
-  const HANDLE=18;
-  const MIN=40;
+  const HANDLE=28, MIN=40, EXTEND=20;
 
   function getEdge(cx,cy,r){
     const atL=cx<r.x+HANDLE, atR=cx>r.x+r.w-HANDLE;
     const atT=cy<r.y+HANDLE, atB=cy>r.y+r.h-HANDLE;
-    if(atT&&atL) return "tl";
-    if(atT&&atR) return "tr";
-    if(atB&&atL) return "bl";
-    if(atB&&atR) return "br";
-    if(atL) return "l";
-    if(atR) return "r";
-    if(atT) return "t";
-    if(atB) return "b";
+    if(atT&&atL) return "tl"; if(atT&&atR) return "tr";
+    if(atB&&atL) return "bl"; if(atB&&atR) return "br";
+    if(atL) return "l"; if(atR) return "r";
+    if(atT) return "t"; if(atB) return "b";
     return null;
   }
 
@@ -612,23 +604,12 @@ function CropOverlay({img,slotW,slotH,onApply,onCancel}){
       if(e.cancelable) e.preventDefault();
       const {edge,startX,startY,startRect}=dragRef.current;
       const src=e.touches?e.touches[0]:e;
-      const cx=src.clientX, cy=src.clientY;
-      const dx=cx-startX, dy=cy-startY;
+      const dx=src.clientX-startX, dy=src.clientY-startY;
       let {x,y,w,h}=startRect;
-      if(edge==="l"||edge==="tl"||edge==="bl"){
-        const nx=Math.max(0,Math.min(x+dx,x+w-MIN));
-        w=w+(x-nx); x=nx;
-      }
-      if(edge==="r"||edge==="tr"||edge==="br"){
-        w=Math.max(MIN,Math.min(w+dx,slotW-x));
-      }
-      if(edge==="t"||edge==="tl"||edge==="tr"){
-        const ny=Math.max(0,Math.min(y+dy,y+h-MIN));
-        h=h+(y-ny); y=ny;
-      }
-      if(edge==="b"||edge==="bl"||edge==="br"){
-        h=Math.max(MIN,Math.min(h+dy,slotH-y));
-      }
+      if(edge==="l"||edge==="tl"||edge==="bl"){ const nx=Math.max(0,Math.min(x+dx,x+w-MIN)); w=w+(x-nx); x=nx; }
+      if(edge==="r"||edge==="tr"||edge==="br"){ w=Math.max(MIN,Math.min(w+dx,slotW-x)); }
+      if(edge==="t"||edge==="tl"||edge==="tr"){ const ny=Math.max(0,Math.min(y+dy,y+h-MIN)); h=h+(y-ny); y=ny; }
+      if(edge==="b"||edge==="bl"||edge==="br"){ h=Math.max(MIN,Math.min(h+dy,slotH-y)); }
       setRect({x,y,w,h});
     }
     function globalUp(){ dragRef.current=null; }
@@ -646,47 +627,29 @@ function CropOverlay({img,slotW,slotH,onApply,onCancel}){
 
   function onDown(e){
     e.stopPropagation(); e.preventDefault();
-    const el=e.currentTarget;
-    const elRect=el.getBoundingClientRect();
+    const elRect=e.currentTarget.getBoundingClientRect();
     const src=e.touches?e.touches[0]:e;
-    const cx=src.clientX, cy=src.clientY;
-    const lx=cx-elRect.left, ly=cy-elRect.top;
+    const lx=src.clientX-elRect.left-EXTEND, ly=src.clientY-elRect.top-EXTEND;
     const edge=getEdge(lx,ly,rect);
     if(!edge) return;
-    dragRef.current={edge,startX:cx,startY:cy,startRect:{...rect}};
+    dragRef.current={edge,startX:src.clientX,startY:src.clientY,startRect:{...rect}};
   }
 
   function doApply(){
-    const scaleX=img.naturalWidth/slotW;
-    const scaleY=img.naturalHeight/slotH;
+    const scaleX=img.naturalWidth/slotW, scaleY=img.naturalHeight/slotH;
     const out=document.createElement("canvas");
-    out.width=Math.round(rect.w*scaleX);
-    out.height=Math.round(rect.h*scaleY);
-    out.getContext("2d").drawImage(img,
-      rect.x*scaleX,rect.y*scaleY,rect.w*scaleX,rect.h*scaleY,
-      0,0,out.width,out.height);
+    out.width=Math.round(rect.w*scaleX); out.height=Math.round(rect.h*scaleY);
+    out.getContext("2d").drawImage(img,rect.x*scaleX,rect.y*scaleY,rect.w*scaleX,rect.h*scaleY,0,0,out.width,out.height);
     onApply(out.toDataURL("image/png"));
   }
 
-  const borderC="rgba(255,255,255,0.9)";
-  const dimC="rgba(0,0,0,0.45)";
-
   return(
-    <div
-      style={{position:"absolute",inset:0,zIndex:20,touchAction:"none"}}
-      onMouseDown={onDown}
-      onTouchStart={onDown}
-    >
-      <div style={{position:"absolute",left:0,top:0,width:"100%",height:rect.y,background:dimC,pointerEvents:"none"}}/>
-      <div style={{position:"absolute",left:0,top:rect.y+rect.h,width:"100%",height:Math.max(0,slotH-rect.y-rect.h),background:dimC,pointerEvents:"none"}}/>
-      <div style={{position:"absolute",left:0,top:rect.y,width:rect.x,height:rect.h,background:dimC,pointerEvents:"none"}}/>
-      <div style={{position:"absolute",left:rect.x+rect.w,top:rect.y,right:0,height:rect.h,background:dimC,pointerEvents:"none"}}/>
-
-      <div style={{
-        position:"absolute",
-        left:rect.x,top:rect.y,width:rect.w,height:rect.h,
-        border:`1.5px solid ${borderC}`,pointerEvents:"none",
-      }}>
+    <div style={{position:"absolute",inset:-EXTEND,zIndex:20,touchAction:"none"}} onMouseDown={onDown} onTouchStart={onDown}>
+      <div style={{position:"absolute",left:0,top:0,width:"100%",height:rect.y+EXTEND,background:"rgba(0,0,0,0.45)",pointerEvents:"none"}}/>
+      <div style={{position:"absolute",left:0,top:rect.y+rect.h+EXTEND,width:"100%",bottom:0,background:"rgba(0,0,0,0.45)",pointerEvents:"none"}}/>
+      <div style={{position:"absolute",left:0,top:rect.y+EXTEND,width:rect.x+EXTEND,height:rect.h,background:"rgba(0,0,0,0.45)",pointerEvents:"none"}}/>
+      <div style={{position:"absolute",left:rect.x+rect.w+EXTEND,top:rect.y+EXTEND,right:0,height:rect.h,background:"rgba(0,0,0,0.45)",pointerEvents:"none"}}/>
+      <div style={{position:"absolute",left:rect.x+EXTEND,top:rect.y+EXTEND,width:rect.w,height:rect.h,border:"1.5px solid rgba(255,255,255,0.9)",pointerEvents:"none"}}>
         {[1/3,2/3].map(f=>(
           <div key={f} style={{position:"absolute",left:`${f*100}%`,top:0,width:1,height:"100%",background:"rgba(255,255,255,0.25)"}}/>
         ))}
@@ -694,53 +657,12 @@ function CropOverlay({img,slotW,slotH,onApply,onCancel}){
           <div key={f+"h"} style={{position:"absolute",top:`${f*100}%`,left:0,height:1,width:"100%",background:"rgba(255,255,255,0.25)"}}/>
         ))}
       </div>
-
-      {[
-        {x:rect.x,        y:rect.y,        dx:1, dy:1 },
-        {x:rect.x+rect.w, y:rect.y,        dx:-1,dy:1 },
-        {x:rect.x,        y:rect.y+rect.h, dx:1, dy:-1},
-        {x:rect.x+rect.w, y:rect.y+rect.h, dx:-1,dy:-1},
-      ].map(({x,y,dx,dy},i)=>(
-        <div key={i} style={{position:"absolute",left:x,top:y,width:0,height:0,pointerEvents:"none"}}>
-          <svg width="22" height="22" style={{
-            position:"absolute",
-            left:dx>0?-2:-20, top:dy>0?-2:-20,
-          }}>
-            <path d={dx>0&&dy>0  ? "M2,14 L2,2 L14,2"
-                   :dx<0&&dy>0  ? "M8,2 L20,2 L20,14"
-                   :dx>0&&dy<0  ? "M2,8 L2,20 L14,20"
-                                : "M8,20 L20,20 L20,8"}
-              stroke="white" strokeWidth="3.5" strokeLinecap="round" fill="none"/>
-          </svg>
-        </div>
+      {[{x:rect.x,y:rect.y},{x:rect.x+rect.w,y:rect.y},{x:rect.x,y:rect.y+rect.h},{x:rect.x+rect.w,y:rect.y+rect.h}].map(({x,y},i)=>(
+        <div key={i} style={{position:"absolute",left:x+EXTEND-10,top:y+EXTEND-10,width:20,height:20,background:"white",borderRadius:3,boxShadow:"0 1px 6px rgba(0,0,0,0.35)",pointerEvents:"none"}}/>
       ))}
-
-      <div style={{
-        position:"absolute", top:8, right:8,
-        display:"flex", gap:6, zIndex:30,
-      }}>
-        <button
-          onMouseDown={e=>e.stopPropagation()}
-          onTouchStart={e=>e.stopPropagation()}
-          onClick={(e)=>{e.stopPropagation();onCancel();}}
-          style={{
-            padding:"6px 14px", borderRadius:20,
-            background:"rgba(0,0,0,0.55)", border:"none",
-            color:"#fff", fontFamily:"'Jost',sans-serif", fontSize:10,
-            letterSpacing:1, cursor:"pointer",
-            backdropFilter:"blur(6px)", WebkitBackdropFilter:"blur(6px)",
-          }}>Cancel</button>
-        <button
-          onMouseDown={e=>e.stopPropagation()}
-          onTouchStart={e=>e.stopPropagation()}
-          onClick={(e)=>{e.stopPropagation();doApply();}}
-          style={{
-            padding:"6px 14px", borderRadius:20,
-            background:C.accent, border:"none",
-            color:"#fff", fontFamily:"'Jost',sans-serif", fontSize:10,
-            letterSpacing:1, cursor:"pointer",
-            boxShadow:"0 2px 8px rgba(196,160,144,.5)",
-          }}>Done</button>
+      <div style={{position:"absolute",top:EXTEND+8,right:EXTEND+8,display:"flex",gap:6,zIndex:30}}>
+        <button onMouseDown={e=>e.stopPropagation()} onTouchStart={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();onCancel();}} style={{padding:"6px 14px",borderRadius:20,background:"rgba(0,0,0,0.55)",border:"none",color:"#fff",fontFamily:"'Jost',sans-serif",fontSize:10,letterSpacing:1,cursor:"pointer",backdropFilter:"blur(6px)",WebkitBackdropFilter:"blur(6px)"}}>Cancel</button>
+        <button onMouseDown={e=>e.stopPropagation()} onTouchStart={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();doApply();}} style={{padding:"6px 14px",borderRadius:20,background:C.accent,border:"none",color:"#fff",fontFamily:"'Jost',sans-serif",fontSize:10,letterSpacing:1,cursor:"pointer",boxShadow:"0 2px 8px rgba(196,160,144,.5)"}}>Done</button>
       </div>
     </div>
   );
@@ -749,63 +671,35 @@ function CropOverlay({img,slotW,slotH,onApply,onCancel}){
 function UploadZone({slot,onFile,onUrl}){
   const inputRef=useRef(null);
   const [tab,setTab]=useState("upload");
-
   return(
-    <div style={{position:"absolute",inset:0,zIndex:5,
-      display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:10}}>
-
+    <div style={{position:"absolute",inset:0,zIndex:5,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:10}}>
       <div style={{display:"flex",gap:0,background:C.faint,borderRadius:20,padding:2}}>
         {["upload","wallpapers"].map(t=>(
           <button key={t} onClick={()=>setTab(t)} style={{
             padding:"4px 12px",borderRadius:18,border:"none",cursor:"pointer",
-            fontFamily:"'Jost',sans-serif",fontSize:8,letterSpacing:1.5,
-            textTransform:"uppercase",transition:"all 0.15s",
-            background:tab===t?C.white:"transparent",
-            color:tab===t?C.accent:C.muted,
+            fontFamily:"'Jost',sans-serif",fontSize:8,letterSpacing:1.5,textTransform:"uppercase",transition:"all 0.15s",
+            background:tab===t?C.white:"transparent",color:tab===t?C.accent:C.muted,
             boxShadow:tab===t?"0 1px 4px rgba(0,0,0,0.08)":"none",
           }}>{t}</button>
         ))}
       </div>
-
       {tab==="upload"&&(
         <>
           <div onClick={()=>inputRef.current?.click()} style={{
-            width:54,height:54,borderRadius:"50%",
-            border:`1px dashed #c8b9b0`,background:"rgba(255,255,255,0.7)",
-            display:"flex",alignItems:"center",justifyContent:"center",
+            width:54,height:54,borderRadius:"50%",border:`1px dashed #c8b9b0`,
+            background:"rgba(255,255,255,0.7)",display:"flex",alignItems:"center",justifyContent:"center",
             fontSize:24,color:"#c4a090",cursor:"pointer",
           }}>＋</div>
-          <span style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
-            fontSize:13,color:"#b5aca5",letterSpacing:1}}>Tap to add a photo</span>
+          <span style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:13,color:"#b5aca5",letterSpacing:1}}>Tap to add a photo</span>
           <input ref={inputRef} type="file" accept="image/*" style={{display:"none"}}
             onChange={e=>{if(e.target.files?.[0]) onFile(e.target.files[0]); e.target.value="";}}/>
         </>
       )}
-
       {tab==="wallpapers"&&(
         <div style={{width:"100%",padding:"0 16px",textAlign:"center"}}>
-          {WALLPAPERS.length===0?(
-            <div style={{
-              fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
-              fontSize:12,color:C.muted,letterSpacing:0.5,lineHeight:1.6,
-            }}>
-              Wallpapers coming soon ✦
-            </div>
-          ):(
-            <div style={{
-              display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6,
-              overflowY:"auto",maxHeight:160,
-            }}>
-              {WALLPAPERS.map(w=>(
-                <div key={w.id} onClick={()=>onUrl(w.src)} style={{
-                  aspectRatio:"1",borderRadius:6,overflow:"hidden",cursor:"pointer",
-                  border:`1.5px solid ${C.border}`,transition:"border-color 0.15s",
-                }}>
-                  <img src={w.src} alt={w.label} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
-                </div>
-              ))}
-            </div>
-          )}
+          <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:12,color:C.muted,letterSpacing:0.5,lineHeight:1.6}}>
+            Wallpapers coming soon ✦
+          </div>
         </div>
       )}
     </div>
@@ -814,6 +708,5 @@ function UploadZone({slot,onFile,onUrl}){
 
 function Sep(){return <div style={{height:1,background:"#e6ddd6"}}/>;}
 function Lbl({children,style}){
-  return <div style={{fontFamily:"'Jost',sans-serif",fontSize:9,letterSpacing:3,
-    color:"#b5aca5",textTransform:"uppercase",marginBottom:2,...style}}>{children}</div>;
+  return <div style={{fontFamily:"'Jost',sans-serif",fontSize:9,letterSpacing:3,color:"#b5aca5",textTransform:"uppercase",marginBottom:2,...style}}>{children}</div>;
 }
