@@ -20,9 +20,8 @@ const C = {
 
 // ── Mask images: preload + convert luminance→alpha ────────
 // White pixels (shape) become opaque; black pixels become transparent
-const _RAW_MASKS = {};
-const MASKS = {};       // shape id -> HTMLCanvasElement (processed)
-const _maskCbs = [];    // callbacks fired when all masks ready
+const MASKS = {};
+const _maskCbs = [];
 let _masksReady = false;
 let _loaded = 0;
 SHAPES.forEach(s => {
