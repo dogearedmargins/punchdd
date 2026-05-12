@@ -9,7 +9,6 @@ const SHAPES = [
   { id:"diamond",   label:"Diamond"   },
 ];
 
-// Populate with { id, label, src } when wallpaper resources are ready
 const WALLPAPERS = [];
 
 const C = {
@@ -18,8 +17,6 @@ const C = {
   faint:"#ede7e1", white:"#fdfaf8", dark:"#5a5250",
 };
 
-// ── Mask images: preload + convert luminance→alpha ────────
-// White pixels (shape) become opaque; black pixels become transparent
 const MASKS = {};
 const _maskCbs = [];
 let _masksReady = false;
@@ -43,29 +40,29 @@ SHAPES.forEach(s => {
       _maskCbs.length = 0;
     }
   };
-  img.src = `/masks/${s.id}.png`;
+  img.src = `/icons/${s.id}.png`;
 });
 
-// ── Shape icon — uses PNG via CSS mask-image ──────────────
 function ShapeIcon({shape, active}){
   const f = active ? C.accent : C.muted;
   return (
     <div style={{
       width:22, height:22,
       background: f,
-      WebkitMaskImage: `url(/masks/${shape}.png)`,
-      maskImage: `url(/masks/${shape}.png)`,
+      WebkitMaskImage: `url(/icons/${shape}.png)`,
+      maskImage: `url(/icons/${shape}.png)`,
       WebkitMaskSize: 'contain',
       maskSize: 'contain',
       WebkitMaskRepeat: 'no-repeat',
       maskRepeat: 'no-repeat',
       WebkitMaskPosition: 'center',
       maskPosition: 'center',
+      WebkitMaskMode: 'luminance',
+      maskMode: 'luminance',
     }}/>
   );
 }
 
-// ── Main ──────────────────────────────────────────────────
 export default function PunchCut(){
   const [imgs,setImgs]         = useState({top:null,bot:null});
   const [holes,setHoles]       = useState([]);
@@ -82,14 +79,12 @@ export default function PunchCut(){
   const topCvs=useRef(null),  botCvs=useRef(null);
   const drawRef=useRef(null);
 
-  // Mobile detection
   useEffect(()=>{
     const h=()=>setIsMobile(window.innerWidth<640);
     window.addEventListener("resize",h);
     return ()=>window.removeEventListener("resize",h);
   },[]);
 
-  // Auto-collapse mobile panel when entering crop mode
   useEffect(()=>{
     if(cropMode) setMobileOpen(false);
   },[cropMode]);
@@ -113,18 +108,14 @@ export default function PunchCut(){
     holes.filter(h=>h.slot===slot).forEach(h=>{
       const mask=MASKS[h.shape];
       if(!mask){
-        // Not processed yet — retry when masks finish loading
         if(!_masksReady) _maskCbs.push(()=>{ drawRef.current?.("top"); drawRef.current?.("bot"); });
         return;
       }
       const s=h.size;
       const hx=h.x-s/2, hy=h.y-s/2;
-
-      // Render hole content into an offscreen canvas, then apply the mask
       const off=document.createElement('canvas');
       off.width=s; off.height=s;
       const offCtx=off.getContext('2d');
-
       if(opp){
         offCtx.drawImage(opp,
           hx/W*opp.naturalWidth,  hy/H*opp.naturalHeight,
@@ -132,7 +123,6 @@ export default function PunchCut(){
           0, 0, s, s
         );
       } else if(my){
-        // Draw same image flipped vertically (peek-through effect)
         offCtx.save();
         offCtx.translate(0,s); offCtx.scale(1,-1);
         offCtx.drawImage(my,
@@ -142,10 +132,8 @@ export default function PunchCut(){
         );
         offCtx.restore();
       }
-
       offCtx.globalCompositeOperation='destination-in';
       offCtx.drawImage(mask, 0, 0, s, s);
-
       ctx.drawImage(off, hx, hy);
     });
   },[imgs,holes]);
@@ -158,10 +146,7 @@ export default function PunchCut(){
     const reader=new FileReader();
     reader.onload=ev=>{
       const img=new Image();
-      img.onload=()=>{
-        setImgs(p=>({...p,[slot]:img}));
-        setCropMode(slot);
-      };
+      img.onload=()=>{ setImgs(p=>({...p,[slot]:img})); setCropMode(slot); };
       img.src=ev.target.result;
     };
     reader.readAsDataURL(file);
@@ -170,17 +155,10 @@ export default function PunchCut(){
   function loadImgFromUrl(url,slot){
     const img=new Image();
     img.crossOrigin="anonymous";
-    img.onload=()=>{
-      setImgs(p=>({...p,[slot]:img}));
-      setCropMode(slot);
-    };
+    img.onload=()=>{ setImgs(p=>({...p,[slot]:img})); setCropMode(slot); };
     img.onerror=()=>{
-      // Retry without CORS (for same-origin assets)
       const img2=new Image();
-      img2.onload=()=>{
-        setImgs(p=>({...p,[slot]:img2}));
-        setCropMode(slot);
-      };
+      img2.onload=()=>{ setImgs(p=>({...p,[slot]:img2})); setCropMode(slot); };
       img2.src=url;
     };
     img.src=url;
@@ -212,7 +190,6 @@ export default function PunchCut(){
   function sprinkle(){
     if(!imgs.top&&!imgs.bot) return;
     const COUNT=15;
-    // Generate shared normalized positions so holes align across both slots
     const positions=Array.from({length:COUNT},()=>({nx:Math.random(),ny:Math.random()}));
     const id0=Date.now();
     const newHoles=[];
@@ -260,7 +237,6 @@ export default function PunchCut(){
 
   const hasAnyImg = !!(imgs.top||imgs.bot);
 
-  // ── Shared control panels ─────────────────────────────────
   const ShapeGrid = ()=>(
     <div>
       <Lbl>Punch Shape</Lbl>
@@ -348,7 +324,6 @@ export default function PunchCut(){
         *{box-sizing:border-box}
       `}</style>
 
-      {/* ── DESKTOP SIDEBAR ── */}
       {!isMobile&&(
         <div style={{
           width:open?238:40,minWidth:open?238:40,
@@ -394,7 +369,6 @@ export default function PunchCut(){
         </div>
       )}
 
-      {/* ── MAIN CANVAS ── */}
       <div style={{
         flex:1,display:"flex",flexDirection:"column",
         alignItems:"center",justifyContent:isMobile?"flex-start":"center",
@@ -448,7 +422,6 @@ export default function PunchCut(){
         )}
       </div>
 
-      {/* ── MOBILE BOTTOM PANEL ── */}
       {isMobile&&(
         <div style={{
           background:C.panel,
@@ -460,7 +433,6 @@ export default function PunchCut(){
           flexShrink:0,
           position:"relative",
         }}>
-          {/* Handle / header row */}
           <div
             onClick={()=>setMobileOpen(o=>!o)}
             style={{
@@ -473,7 +445,6 @@ export default function PunchCut(){
               Punch Cut
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
-              {/* Active shape preview */}
               <div style={{
                 width:28,height:28,borderRadius:6,
                 background:C.faint,border:`1px solid ${C.border}`,
@@ -492,7 +463,6 @@ export default function PunchCut(){
             </div>
           </div>
 
-          {/* Scrollable panel content */}
           <div style={{
             padding:"0 14px 16px",
             overflowY:"auto",
@@ -520,7 +490,6 @@ export default function PunchCut(){
         </div>
       )}
 
-      {/* ── PREVIEW MODAL ── */}
       {previewUrl&&(
         <div onClick={()=>setPreviewUrl(null)} style={{
           position:"fixed",inset:0,zIndex:100,
@@ -561,7 +530,6 @@ export default function PunchCut(){
   );
 }
 
-// ── Slot ─────────────────────────────────────────────────
 function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,isCropping,onApplyCrop,onCancelCrop}){
   const hasImg=!!img;
   const SLOT_W=300;
@@ -621,8 +589,6 @@ function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,isCroppi
   );
 }
 
-// ── CropOverlay ───────────────────────────────────────────
-// Global window listeners allow dragging outside the slot boundary
 function CropOverlay({img,slotW,slotH,onApply,onCancel}){
   const [rect,setRect]=useState({x:0,y:0,w:slotW,h:slotH});
   const dragRef=useRef(null);
@@ -644,7 +610,6 @@ function CropOverlay({img,slotW,slotH,onApply,onCancel}){
     return null;
   }
 
-  // Attach move/up on window so dragging works outside slot bounds
   useEffect(()=>{
     function globalMove(e){
       if(!dragRef.current) return;
@@ -670,9 +635,7 @@ function CropOverlay({img,slotW,slotH,onApply,onCancel}){
       }
       setRect({x,y,w,h});
     }
-    function globalUp(){
-      dragRef.current=null;
-    }
+    function globalUp(){ dragRef.current=null; }
     window.addEventListener("mousemove",globalMove);
     window.addEventListener("mouseup",globalUp);
     window.addEventListener("touchmove",globalMove,{passive:false});
@@ -718,13 +681,11 @@ function CropOverlay({img,slotW,slotH,onApply,onCancel}){
       onMouseDown={onDown}
       onTouchStart={onDown}
     >
-      {/* dim outside crop */}
       <div style={{position:"absolute",left:0,top:0,width:"100%",height:rect.y,background:dimC,pointerEvents:"none"}}/>
       <div style={{position:"absolute",left:0,top:rect.y+rect.h,width:"100%",height:Math.max(0,slotH-rect.y-rect.h),background:dimC,pointerEvents:"none"}}/>
       <div style={{position:"absolute",left:0,top:rect.y,width:rect.x,height:rect.h,background:dimC,pointerEvents:"none"}}/>
       <div style={{position:"absolute",left:rect.x+rect.w,top:rect.y,right:0,height:rect.h,background:dimC,pointerEvents:"none"}}/>
 
-      {/* crop border */}
       <div style={{
         position:"absolute",
         left:rect.x,top:rect.y,width:rect.w,height:rect.h,
@@ -738,7 +699,6 @@ function CropOverlay({img,slotW,slotH,onApply,onCancel}){
         ))}
       </div>
 
-      {/* corner L-bracket handles */}
       {[
         {x:rect.x,        y:rect.y,        dx:1, dy:1 },
         {x:rect.x+rect.w, y:rect.y,        dx:-1,dy:1 },
@@ -759,7 +719,6 @@ function CropOverlay({img,slotW,slotH,onApply,onCancel}){
         </div>
       ))}
 
-      {/* Cancel / Done buttons */}
       <div style={{
         position:"absolute", top:8, right:8,
         display:"flex", gap:6, zIndex:30,
@@ -791,7 +750,6 @@ function CropOverlay({img,slotW,slotH,onApply,onCancel}){
   );
 }
 
-// ── UploadZone ───────────────────────────────────────────
 function UploadZone({slot,onFile,onUrl}){
   const inputRef=useRef(null);
   const [tab,setTab]=useState("upload");
@@ -800,7 +758,6 @@ function UploadZone({slot,onFile,onUrl}){
     <div style={{position:"absolute",inset:0,zIndex:5,
       display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:10}}>
 
-      {/* Tab switcher — always visible so users know wallpapers exist */}
       <div style={{display:"flex",gap:0,background:C.faint,borderRadius:20,padding:2}}>
         {["upload","wallpapers"].map(t=>(
           <button key={t} onClick={()=>setTab(t)} style={{
