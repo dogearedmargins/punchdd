@@ -10,7 +10,6 @@ const SHAPES = [
 ];
 
 // Populate with { id, label, src } when wallpaper resources are ready
-// e.g. { id:"w1", label:"Forest", src:"/wallpapers/forest.jpg" }
 const WALLPAPERS = [];
 
 const C = {
@@ -19,136 +18,52 @@ const C = {
   faint:"#ede7e1", white:"#fdfaf8", dark:"#5a5250",
 };
 
-// ── clipShape: unit coords (0,0) center radius 1 ─────────
-function clipShape(ctx, shape) {
-  ctx.beginPath();
-  switch(shape) {
-    case "circle": ctx.arc(0,0,1,0,Math.PI*2); break;
-    case "star": {
-      const pts=5, outer=1, inner=0.4;
-      for(let i=0;i<pts*2;i++){
-        const a=(i*Math.PI)/pts - Math.PI/2;
-        const r=i%2===0 ? outer : inner;
-        if(i===0) ctx.moveTo(Math.cos(a)*r, Math.sin(a)*r);
-        else       ctx.lineTo(Math.cos(a)*r, Math.sin(a)*r);
-      }
-      ctx.closePath(); break;
+// ── Mask images: preload + convert luminance→alpha ────────
+// White pixels (shape) become opaque; black pixels become transparent
+const _RAW_MASKS = {};
+const MASKS = {};       // shape id -> HTMLCanvasElement (processed)
+const _maskCbs = [];    // callbacks fired when all masks ready
+let _masksReady = false;
+let _loaded = 0;
+SHAPES.forEach(s => {
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = img.naturalWidth; c.height = img.naturalHeight;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const d = ctx.getImageData(0, 0, c.width, c.height);
+    for(let i = 0; i < d.data.length; i += 4){
+      d.data[i+3] = Math.round(d.data[i]*0.299 + d.data[i+1]*0.587 + d.data[i+2]*0.114);
     }
-    case "heart": {
-      ctx.moveTo(0, 1);
-      ctx.bezierCurveTo(-0.1, 0.6, -1, 0.4, -1, -0.2);
-      ctx.bezierCurveTo(-1, -0.8, -0.5, -1, 0, -0.5);
-      ctx.bezierCurveTo(0.5, -1, 1, -0.8, 1, -0.2);
-      ctx.bezierCurveTo(1, 0.4, 0.1, 0.6, 0, 1);
-      ctx.closePath(); break;
+    ctx.putImageData(d, 0, 0);
+    MASKS[s.id] = c;
+    if(++_loaded === SHAPES.length){
+      _masksReady = true;
+      _maskCbs.forEach(cb => cb());
+      _maskCbs.length = 0;
     }
-    case "butterfly": {
-      // 4 wings radiating from centre — each a closed bezier loop
-      ctx.moveTo(0,0);
-      ctx.bezierCurveTo(-0.3,-0.3,-1.0,-0.75,-0.85,0.1);
-      ctx.bezierCurveTo(-0.7,0.5,-0.15,0.35,0,0);
-      ctx.closePath();
-      ctx.moveTo(0,0);
-      ctx.bezierCurveTo(0.3,-0.3,1.0,-0.75,0.85,0.1);
-      ctx.bezierCurveTo(0.7,0.5,0.15,0.35,0,0);
-      ctx.closePath();
-      ctx.moveTo(0,0);
-      ctx.bezierCurveTo(-0.15,0.1,-0.62,0.55,-0.48,0.9);
-      ctx.bezierCurveTo(-0.32,1.08,-0.05,0.62,0,0);
-      ctx.closePath();
-      ctx.moveTo(0,0);
-      ctx.bezierCurveTo(0.15,0.1,0.62,0.55,0.48,0.9);
-      ctx.bezierCurveTo(0.32,1.08,0.05,0.62,0,0);
-      ctx.closePath();
-      break;
-    }
-    case "flower": {
-      const p=5,cr=0.22;
-      for(let i=0;i<p;i++){
-        const a=(i/p)*Math.PI*2-Math.PI/2;
-        const tx=Math.cos(a),ty=Math.sin(a);
-        const c1x=Math.cos(a-0.48)*0.65,c1y=Math.sin(a-0.48)*0.65;
-        const c2x=Math.cos(a+0.48)*0.65,c2y=Math.sin(a+0.48)*0.65;
-        const ix=Math.cos(a-0.52)*cr,iy=Math.sin(a-0.52)*cr;
-        const ox=Math.cos(a+0.52)*cr,oy=Math.sin(a+0.52)*cr;
-        if(i===0) ctx.moveTo(ix,iy); else ctx.lineTo(ix,iy);
-        ctx.bezierCurveTo(c1x,c1y,tx,ty,tx,ty);
-        ctx.bezierCurveTo(tx,ty,c2x,c2y,ox,oy);
-      }
-      ctx.closePath(); break;
-    }
-    case "diamond":
-      ctx.moveTo(0,-1); ctx.lineTo(1,0); ctx.lineTo(0,1); ctx.lineTo(-1,0);
-      ctx.closePath(); break;
-    default: break;
-  }
-}
+  };
+  img.src = `/icons/${s.id}.png`;
+});
 
-function applyClip(ctx,x,y,size,shape){
-  const s=size/2;
-  ctx.translate(x,y);
-  ctx.scale(s,s);
-  clipShape(ctx,shape);
-  ctx.clip();
-  ctx.scale(1/s,1/s);
-  ctx.translate(-x,-y);
-}
-
-// ── Shape icon ────────────────────────────────────────────
-function ShapeIcon({shape,active}){
-  const f=active?C.accent:C.muted;
-  if(shape==="circle") return(
-    <svg width={22} height={22} viewBox="-1.2 -1.2 2.4 2.4">
-      <circle fill={f} cx="0" cy="0" r="1"/>
-    </svg>
+// ── Shape icon — uses PNG via CSS mask-image ──────────────
+function ShapeIcon({shape, active}){
+  const f = active ? C.accent : C.muted;
+  return (
+    <div style={{
+      width:22, height:22,
+      background: f,
+      WebkitMaskImage: `url(/icons/${shape}.png)`,
+      maskImage: `url(/icons/${shape}.png)`,
+      WebkitMaskSize: 'contain',
+      maskSize: 'contain',
+      WebkitMaskRepeat: 'no-repeat',
+      maskRepeat: 'no-repeat',
+      WebkitMaskPosition: 'center',
+      maskPosition: 'center',
+    }}/>
   );
-  if(shape==="star") return(
-    <svg width={22} height={22} viewBox="-1.2 -1.2 2.4 2.4">
-      <polygon fill={f} points={Array.from({length:10},(_,i)=>{
-        const a=(i*Math.PI)/5-Math.PI/2, r=i%2===0?1:0.4;
-        return `${Math.cos(a)*r},${Math.sin(a)*r}`;
-      }).join(" ")}/>
-    </svg>
-  );
-  if(shape==="heart") return(
-    <svg width={22} height={22} viewBox="-1.2 -1.2 2.4 2.4">
-      <path fill={f} d="M0,1 C-0.1,0.6 -1,0.4 -1,-0.2 C-1,-0.8 -0.5,-1 0,-0.5 C0.5,-1 1,-0.8 1,-0.2 C1,0.4 0.1,0.6 0,1 Z"/>
-    </svg>
-  );
-  if(shape==="butterfly") return(
-    <svg width={22} height={22} viewBox="-1.2 -1.2 2.4 2.4">
-      <path fill={f} d="
-        M0,0 C-0.3,-0.3 -1,-0.75 -0.85,0.1 C-0.7,0.5 -0.15,0.35 0,0 Z
-        M0,0 C0.3,-0.3 1,-0.75 0.85,0.1 C0.7,0.5 0.15,0.35 0,0 Z
-        M0,0 C-0.15,0.1 -0.62,0.55 -0.48,0.9 C-0.32,1.08 -0.05,0.62 0,0 Z
-        M0,0 C0.15,0.1 0.62,0.55 0.48,0.9 C0.32,1.08 0.05,0.62 0,0 Z
-      "/>
-    </svg>
-  );
-  if(shape==="flower"){
-    const p=5,cr=0.22;
-    let d='';
-    for(let i=0;i<p;i++){
-      const a=(i/p)*Math.PI*2-Math.PI/2;
-      const tx=Math.cos(a),ty=Math.sin(a);
-      const c1x=Math.cos(a-0.48)*0.65,c1y=Math.sin(a-0.48)*0.65;
-      const c2x=Math.cos(a+0.48)*0.65,c2y=Math.sin(a+0.48)*0.65;
-      const ix=Math.cos(a-0.52)*cr,iy=Math.sin(a-0.52)*cr;
-      const ox=Math.cos(a+0.52)*cr,oy=Math.sin(a+0.52)*cr;
-      const r=(n)=>n.toFixed(4);
-      d+=i===0?`M${r(ix)},${r(iy)}`:`L${r(ix)},${r(iy)}`;
-      d+=` C${r(c1x)},${r(c1y)} ${r(tx)},${r(ty)} ${r(tx)},${r(ty)}`;
-      d+=` C${r(tx)},${r(ty)} ${r(c2x)},${r(c2y)} ${r(ox)},${r(oy)}`;
-    }
-    d+='Z';
-    return <svg width={22} height={22} viewBox="-1.2 -1.2 2.4 2.4"><path fill={f} d={d}/></svg>;
-  }
-  if(shape==="diamond") return(
-    <svg width={22} height={22} viewBox="-1.2 -1.2 2.4 2.4">
-      <path fill={f} d="M0,-1 L1,0 L0,1 L-1,0 Z"/>
-    </svg>
-  );
-  return null;
 }
 
 // ── Main ──────────────────────────────────────────────────
@@ -166,6 +81,7 @@ export default function PunchCut(){
 
   const topSlot=useRef(null), botSlot=useRef(null);
   const topCvs=useRef(null),  botCvs=useRef(null);
+  const drawRef=useRef(null);
 
   // Mobile detection
   useEffect(()=>{
@@ -194,15 +110,48 @@ export default function PunchCut(){
     ctx.clearRect(0,0,W,H);
     const my=imgs[slot], opp=imgs[slot==="top"?"bot":"top"];
     if(!my&&!opp) return;
+
     holes.filter(h=>h.slot===slot).forEach(h=>{
-      ctx.save();
-      applyClip(ctx,h.x,h.y,h.size,h.shape);
-      if(opp){ ctx.drawImage(opp,0,0,W,H); }
-      else if(my){ ctx.translate(0,H); ctx.scale(1,-1); ctx.drawImage(my,0,0,W,H); }
-      ctx.restore();
+      const mask=MASKS[h.shape];
+      if(!mask){
+        // Not processed yet — retry when masks finish loading
+        if(!_masksReady) _maskCbs.push(()=>{ drawRef.current?.("top"); drawRef.current?.("bot"); });
+        return;
+      }
+      const s=h.size;
+      const hx=h.x-s/2, hy=h.y-s/2;
+
+      // Render hole content into an offscreen canvas, then apply the mask
+      const off=document.createElement('canvas');
+      off.width=s; off.height=s;
+      const offCtx=off.getContext('2d');
+
+      if(opp){
+        offCtx.drawImage(opp,
+          hx/W*opp.naturalWidth,  hy/H*opp.naturalHeight,
+          s/W*opp.naturalWidth,   s/H*opp.naturalHeight,
+          0, 0, s, s
+        );
+      } else if(my){
+        // Draw same image flipped vertically (peek-through effect)
+        offCtx.save();
+        offCtx.translate(0,s); offCtx.scale(1,-1);
+        offCtx.drawImage(my,
+          hx/W*my.naturalWidth,  (H-hy-s)/H*my.naturalHeight,
+          s/W*my.naturalWidth,   s/H*my.naturalHeight,
+          0, 0, s, s
+        );
+        offCtx.restore();
+      }
+
+      offCtx.globalCompositeOperation='destination-in';
+      offCtx.drawImage(mask, 0, 0, s, s);
+
+      ctx.drawImage(off, hx, hy);
     });
   },[imgs,holes]);
 
+  useEffect(()=>{ drawRef.current=draw; },[draw]);
   useEffect(()=>{draw("top");draw("bot");},[draw]);
 
   function loadImg(file,slot){
