@@ -113,28 +113,31 @@ export default function PunchCut(){
       }
       const s=h.size;
       const hx=h.x-s/2, hy=h.y-s/2;
-      const off=document.createElement('canvas');
-      off.width=s; off.height=s;
+            const off=document.createElement('canvas');
+      off.width=s*dpr; off.height=s*dpr;
       const offCtx=off.getContext('2d');
+
       if(opp){
         offCtx.drawImage(opp,
           hx/W*opp.naturalWidth,  hy/H*opp.naturalHeight,
           s/W*opp.naturalWidth,   s/H*opp.naturalHeight,
-          0, 0, s, s
+          0, 0, s*dpr, s*dpr
         );
       } else if(my){
         offCtx.save();
-        offCtx.translate(0,s); offCtx.scale(1,-1);
+        offCtx.translate(0,s*dpr); offCtx.scale(1,-1);
         offCtx.drawImage(my,
           hx/W*my.naturalWidth,  (H-hy-s)/H*my.naturalHeight,
           s/W*my.naturalWidth,   s/H*my.naturalHeight,
-          0, 0, s, s
+          0, 0, s*dpr, s*dpr
         );
         offCtx.restore();
       }
+
       offCtx.globalCompositeOperation='destination-in';
-      offCtx.drawImage(mask, 0, 0, s, s);
-      ctx.drawImage(off, hx, hy);
+      offCtx.drawImage(mask, 0, 0, s*dpr, s*dpr);
+
+      ctx.drawImage(off, hx, hy, s, s);
     });
   },[imgs,holes]);
 
