@@ -113,10 +113,15 @@ export default function PunchCut(){
   const [isMobile,setIsMobile] = useState(()=>window.innerWidth<640);
   const [mobileOpen,setMobileOpen] = useState(false);
   const [saveClicked,setSaveClicked] = useState(false);
+  const [panelTexture,setPanelTexture] = useState('');
 
   const topSlot=useRef(null), botSlot=useRef(null);
   const topCvs=useRef(null),  botCvs=useRef(null);
   const drawRef=useRef(null);
+
+  useEffect(()=>{
+    setPanelTexture(generateTexturedWallpaper('#8fadc5'));
+  },[]);
 
   useEffect(()=>{
     const h=()=>setIsMobile(window.innerWidth<640);
@@ -435,7 +440,7 @@ export default function PunchCut(){
         alignItems:"center",justifyContent:isMobile?"flex-start":"center",
         padding:isMobile?"16px 12px 10px":24,
         overflow:"auto",
-        background:`#8fadc5 url('/icons/punchdd%20right%20panel.png') center/cover no-repeat`,
+        background:`url('/icons/punchdd%20right%20panel.png') center/contain no-repeat, ${panelTexture ? `url(${panelTexture}) center/cover` : '#8fadc5'}`,
       }}>
         {/* Slot card — transparent, no border/shadow; stamp image provides the frame */}
         <div style={{
@@ -447,13 +452,27 @@ export default function PunchCut(){
             onWallpaper={(d)=>insertWallpaper(d,"top")}
             isCropping={cropMode==="top"}
             onApplyCrop={(d)=>applyCrop("top",d)}
-            onCancelCrop={()=>setCropMode(null)}/>
+            onCancelCrop={()=>{ setCropMode(null); setImgs(p=>({...p,top:null})); }}/>
           <Slot slot="bot" slotRef={botSlot} cvsRef={botCvs} img={imgs.bot}
             ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
             onWallpaper={(d)=>insertWallpaper(d,"bot")}
             isCropping={cropMode==="bot"}
             onApplyCrop={(d)=>applyCrop("bot",d)}
-            onCancelCrop={()=>setCropMode(null)}/>
+            onCancelCrop={()=>{ setCropMode(null); setImgs(p=>({...p,bot:null})); }}/>
+          {!isMobile&&!cropMode&&(
+            <div style={{display:"flex",justifyContent:"center",padding:"14px 0 10px"}}>
+              <button className="save-btn" onClick={handleSave} style={{
+                background:saveClicked?C.activeBlue:"rgba(240,247,252,0.88)",
+                border:`1.5px solid ${saveClicked?"#7a9ab5":"rgba(160,200,230,0.7)"}`,
+                color:saveClicked?"#fff":"#6a9ab5",
+                padding:"10px 36px",borderRadius:50,
+                fontFamily:"'Jost',sans-serif",fontSize:10,letterSpacing:3,
+                textTransform:"uppercase",cursor:"pointer",
+                boxShadow:"0 4px 16px rgba(0,0,0,0.1)",
+                opacity: hasAnyImg ? 1 : 0.5,
+              }}>↓ Save</button>
+            </div>
+          )}
         </div>
 
         <p style={{
@@ -465,18 +484,6 @@ export default function PunchCut(){
             : (!imgs.top&&!imgs.bot ? "Add an image to get started" : "Click the image to punch a hole ✦")}
         </p>
 
-        {!isMobile&&hasAnyImg&&!cropMode&&(
-          <button className="save-btn" onClick={handleSave} style={{
-            marginTop:16,
-            background:saveClicked?C.activeBlue:"rgba(240,247,252,0.88)",
-            border:`1.5px solid ${saveClicked?"#7a9ab5":"rgba(160,200,230,0.7)"}`,
-            color:saveClicked?"#fff":"#6a9ab5",
-            padding:"12px 40px",borderRadius:50,
-            fontFamily:"'Jost',sans-serif",fontSize:10,letterSpacing:3,
-            textTransform:"uppercase",cursor:"pointer",
-            boxShadow:"0 4px 16px rgba(0,0,0,0.1)",
-          }}>↓ Save</button>
-        )}
       </div>
 
       {/* ── MOBILE BOTTOM PANEL ── */}
