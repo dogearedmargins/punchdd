@@ -9,71 +9,79 @@ const SHAPES = [
   { id:"diamond",   label:"Diamond"   },
 ];
 
-const WALLPAPERS = [];
+const WALLPAPERS = [
+  { id:"oatmeal-raisin",    label:"Oatmeal Raisin",    color:"#431519" },
+  { id:"lavender-latte",    label:"Lavender Latte",    color:"#BEA6CE" },
+  { id:"striped-tote",      label:"Striped Tote Bag",  color:"#8FADC5" },
+  { id:"buttoned-cardigan", label:"Buttoned Cardigan", color:"#BBBB91" },
+  { id:"deep-rouge",        label:"Deep Rouge",        color:"#61000b" },
+  { id:"petal-pink",        label:"Petal Pink",        color:"#ffd4e1" },
+];
 
 const C = {
   bg:"#f8f5f1", panel:"#f3ede8", border:"#e6ddd6",
   accent:"#c4a090", text:"#78706a", muted:"#b5aca5",
   faint:"#ede7e1", white:"#fdfaf8", dark:"#5a5250",
+  activeBlue:"#7a9ab5",
 };
 
-function buildVectorMask(shape, size){
+// ── PNG Mask preload: white pixels → opaque, black → transparent ──
+const MASKS = {};
+const _maskCbs = [];
+let _masksReady = false;
+let _loaded = 0;
+SHAPES.forEach(s => {
+  const img = new Image();
+  img.onload = () => {
+    const c = document.createElement('canvas');
+    c.width = img.naturalWidth; c.height = img.naturalHeight;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    const d = ctx.getImageData(0, 0, c.width, c.height);
+    for (let i = 0; i < d.data.length; i += 4) {
+      d.data[i+3] = Math.round(d.data[i]*0.299 + d.data[i+1]*0.587 + d.data[i+2]*0.114);
+    }
+    ctx.putImageData(d, 0, 0);
+    MASKS[s.id] = c;
+    if (++_loaded === SHAPES.length) {
+      _masksReady = true;
+      _maskCbs.forEach(cb => cb());
+      _maskCbs.length = 0;
+    }
+  };
+  img.src = `/icons/${s.id}.png`;
+});
+
+// ── Paper texture wallpaper generator ────────────────────
+function generateTexturedWallpaper(color) {
+  const W = 800, H = 800;
   const c = document.createElement('canvas');
-  c.width = size; c.height = size;
+  c.width = W; c.height = H;
   const ctx = c.getContext('2d');
-  const cx = size/2, cy = size/2, r = size/2 * 0.88;
-  ctx.fillStyle = '#000';
-  ctx.beginPath();
-  if(shape==='circle'){
-    ctx.arc(cx, cy, r, 0, Math.PI*2);
-  } else if(shape==='diamond'){
-    ctx.moveTo(cx, cy-r);
-    ctx.lineTo(cx+r*0.65, cy);
-    ctx.lineTo(cx, cy+r);
-    ctx.lineTo(cx-r*0.65, cy);
-    ctx.closePath();
-  } else if(shape==='star'){
-    for(let i=0;i<10;i++){
-      const a=(i*Math.PI/5)-Math.PI/2;
-      const d=i%2===0?r:r*0.4;
-      i===0?ctx.moveTo(cx+d*Math.cos(a),cy+d*Math.sin(a)):ctx.lineTo(cx+d*Math.cos(a),cy+d*Math.sin(a));
-    }
-    ctx.closePath();
-  } else if(shape==='heart'){
-    ctx.moveTo(cx, cy+r*0.75);
-    ctx.bezierCurveTo(cx-r*0.05,cy+r*0.2, cx-r*1.1,cy-r*0.3, cx-r*0.5,cy-r*0.65);
-    ctx.bezierCurveTo(cx-r*0.15,cy-r*0.9, cx+r*0.15,cy-r*0.9, cx+r*0.5,cy-r*0.65);
-    ctx.bezierCurveTo(cx+r*1.1,cy-r*0.3, cx+r*0.05,cy+r*0.2, cx,cy+r*0.75);
-    ctx.closePath();
-  } else if(shape==='flower'){
-    const n=5, pr=r*0.52, pc=r*0.36;
-    for(let i=0;i<n;i++){
-      const a=(i/n)*Math.PI*2-Math.PI/2;
-      ctx.moveTo(cx+(pc+pr)*Math.cos(a), cy+(pc+pr)*Math.sin(a));
-      ctx.arc(cx+pc*Math.cos(a), cy+pc*Math.sin(a), pr, 0, Math.PI*2);
-    }
-    ctx.moveTo(cx+r*0.22, cy);
-    ctx.arc(cx, cy, r*0.22, 0, Math.PI*2);
-  } else if(shape==='butterfly'){
-    ctx.moveTo(cx, cy-r*0.05);
-    ctx.bezierCurveTo(cx-r*0.15,cy-r*0.7, cx-r*1.05,cy-r*0.85, cx-r*0.9,cy-r*0.05);
-    ctx.bezierCurveTo(cx-r*0.75,cy+r*0.3, cx-r*0.15,cy+r*0.12, cx,cy-r*0.05);
-    ctx.moveTo(cx, cy-r*0.05);
-    ctx.bezierCurveTo(cx+r*0.15,cy-r*0.7, cx+r*1.05,cy-r*0.85, cx+r*0.9,cy-r*0.05);
-    ctx.bezierCurveTo(cx+r*0.75,cy+r*0.3, cx+r*0.15,cy+r*0.12, cx,cy-r*0.05);
-    ctx.moveTo(cx, cy+r*0.05);
-    ctx.bezierCurveTo(cx-r*0.15,cy+r*0.35, cx-r*0.75,cy+r*0.9, cx-r*0.45,cy+r*0.6);
-    ctx.bezierCurveTo(cx-r*0.2,cy+r*0.35, cx-r*0.05,cy+r*0.2, cx,cy+r*0.05);
-    ctx.moveTo(cx, cy+r*0.05);
-    ctx.bezierCurveTo(cx+r*0.15,cy+r*0.35, cx+r*0.75,cy+r*0.9, cx+r*0.45,cy+r*0.6);
-    ctx.bezierCurveTo(cx+r*0.2,cy+r*0.35, cx+r*0.05,cy+r*0.2, cx,cy+r*0.05);
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, W, H);
+  const d = ctx.getImageData(0, 0, W, H);
+  for (let i = 0; i < d.data.length; i += 4) {
+    const n = (Math.random() - 0.5) * 28;
+    d.data[i]   = Math.min(255, Math.max(0, d.data[i]   + n));
+    d.data[i+1] = Math.min(255, Math.max(0, d.data[i+1] + n));
+    d.data[i+2] = Math.min(255, Math.max(0, d.data[i+2] + n));
   }
-  ctx.fill('evenodd');
-  return c;
+  ctx.putImageData(d, 0, 0);
+  for (let x = 0; x < W; x += 2) {
+    for (let y = 0; y < H; y += 2) {
+      if (Math.random() > 0.65) {
+        ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.07})`;
+        ctx.fillRect(x, y, 2, 2);
+      }
+    }
+  }
+  return c.toDataURL('image/png');
 }
 
+// ── Shape icon — CSS mask from PNG ───────────────────────
 function ShapeIcon({shape, active}){
-  const f = active ? C.accent : C.muted;
+  const f = active ? C.activeBlue : C.muted;
   return (
     <div style={{
       width:22, height:22,
@@ -92,6 +100,7 @@ function ShapeIcon({shape, active}){
   );
 }
 
+// ── Main ─────────────────────────────────────────────────
 export default function PunchCut(){
   const [imgs,setImgs]         = useState({top:null,bot:null});
   const [holes,setHoles]       = useState([]);
@@ -136,7 +145,11 @@ export default function PunchCut(){
 
     holes.filter(h=>h.slot===slot).forEach(h=>{
       const s=h.size;
-      const mask=buildVectorMask(h.shape, s*dpr);
+      const mask=MASKS[h.shape];
+      if(!mask){
+        if(!_masksReady) _maskCbs.push(()=>{ drawRef.current?.("top"); drawRef.current?.("bot"); });
+        return;
+      }
       const hx=h.x-s/2, hy=h.y-s/2;
       const off=document.createElement('canvas');
       off.width=s*dpr; off.height=s*dpr;
@@ -181,14 +194,22 @@ export default function PunchCut(){
 
   function loadImgFromUrl(url,slot){
     const img=new Image();
-    img.crossOrigin="anonymous";
+    if(!url.startsWith('data:')) img.crossOrigin="anonymous";
     img.onload=()=>{ setImgs(p=>({...p,[slot]:img})); setCropMode(slot); };
     img.onerror=()=>{
+      if(url.startsWith('data:')) return;
       const img2=new Image();
       img2.onload=()=>{ setImgs(p=>({...p,[slot]:img2})); setCropMode(slot); };
       img2.src=url;
     };
     img.src=url;
+  }
+
+  // Insert wallpaper directly without triggering crop mode
+  function insertWallpaper(dataUrl, slot){
+    const img=new Image();
+    img.onload=()=>setImgs(p=>({...p,[slot]:img}));
+    img.src=dataUrl;
   }
 
   function applyCrop(slot,dataUrl){
@@ -258,7 +279,7 @@ export default function PunchCut(){
     border:`1.5px solid ${active?"#a0c4e0":C.border}`,
     borderRadius:8,cursor:"pointer",
     fontFamily:"'Jost',sans-serif",fontSize:9,letterSpacing:1,
-    color:active?"#6a9ec0":C.muted,transition:"all 0.15s",
+    color:active?C.activeBlue:C.muted,transition:"all 0.15s",
     boxShadow:active?"0 2px 8px rgba(160,196,224,0.2)":"none",
   });
 
@@ -277,7 +298,7 @@ export default function PunchCut(){
               alignItems:"center",justifyContent:"center",gap:4,padding:"6px 2px",
             }}>
               <ShapeIcon shape={s.id} active={active}/>
-              <span style={{fontSize:7,fontFamily:"'Jost',sans-serif",letterSpacing:0.8,color:active?"#6a9ec0":C.muted}}>{s.label}</span>
+              <span style={{fontSize:7,fontFamily:"'Jost',sans-serif",letterSpacing:0.8,color:active?C.activeBlue:C.muted}}>{s.label}</span>
             </button>
           );
         })}
@@ -347,14 +368,15 @@ export default function PunchCut(){
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@300;400&display=swap');
         @keyframes rpl{from{opacity:.7;transform:scale(.2)}to{opacity:0;transform:scale(2.2)}}
         input[type=range]{-webkit-appearance:none;width:100%;height:1px;background:${C.border};border-radius:1px;outline:none}
-        input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:${C.accent};cursor:pointer;border:2px solid ${C.white};box-shadow:0 1px 4px rgba(0,0,0,.12)}
+        input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#9fb3c8;cursor:pointer;border:2px solid ${C.white};box-shadow:0 1px 4px rgba(0,0,0,.12)}
         *{box-sizing:border-box}
       `}</style>
 
+      {/* ── DESKTOP SIDEBAR ── */}
       {!isMobile&&(
         <div style={{
           width:open?238:40,minWidth:open?238:40,
-          background:`url('/sidebar-bg.png') center/cover no-repeat, ${C.panel}`,
+          background:`url('/icons/punchdd_left_panel.png') center/cover no-repeat, ${C.panel}`,
           borderRight:`1px solid ${C.border}`,
           display:"flex",flexDirection:"column",
           transition:"width .3s ease,min-width .3s ease",
@@ -376,7 +398,7 @@ export default function PunchCut(){
             padding:"16px 14px",overflowY:"auto",flex:1,minWidth:238,
           }}>
             <div style={{paddingTop:2,paddingRight:28}}>
-              <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:22,color:C.dark,letterSpacing:2,fontWeight:300}}>Punch Cut</div>
+              <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:22,color:C.dark,letterSpacing:2,fontWeight:300}}>Punchdd</div>
               <div style={{fontFamily:"'Jost',sans-serif",fontSize:8,color:C.muted,letterSpacing:3,marginTop:2,textTransform:"uppercase"}}>photo editor</div>
             </div>
             <Sep/>
@@ -397,31 +419,28 @@ export default function PunchCut(){
         </div>
       )}
 
+      {/* ── MAIN CANVAS ── */}
       <div style={{
         flex:1,display:"flex",flexDirection:"column",
         alignItems:"center",justifyContent:isMobile?"flex-start":"center",
         padding:isMobile?"16px 12px 10px":24,
-        overflow:"auto",background:"#8499b5",
+        overflow:"auto",
+        background:"url('/icons/punchdd_right_panel.png') center/cover no-repeat",
       }}>
+        {/* Slot card — transparent, no border/shadow; stamp image provides the frame */}
         <div style={{
           width:400,overflow:"visible",position:"relative",
-          background:C.bg,
-          WebkitMaskImage:"radial-gradient(circle at 50% 0%,transparent 7px,#000 7px),radial-gradient(circle at 50% 100%,transparent 7px,#000 7px),radial-gradient(circle at 0% 50%,transparent 7px,#000 7px),radial-gradient(circle at 100% 50%,transparent 7px,#000 7px),linear-gradient(#000,#000)",
-          maskImage:"radial-gradient(circle at 50% 0%,transparent 7px,#000 7px),radial-gradient(circle at 50% 100%,transparent 7px,#000 7px),radial-gradient(circle at 0% 50%,transparent 7px,#000 7px),radial-gradient(circle at 100% 50%,transparent 7px,#000 7px),linear-gradient(#000,#000)",
-          WebkitMaskSize:"14px 14px,14px 14px,14px 14px,14px 14px,calc(100% - 14px) calc(100% - 14px)",
-          maskSize:"14px 14px,14px 14px,14px 14px,14px 14px,calc(100% - 14px) calc(100% - 14px)",
-          WebkitMaskPosition:"top,bottom,left,right,center",
-          maskPosition:"top,bottom,left,right,center",
-          WebkitMaskRepeat:"repeat-x,repeat-x,repeat-y,repeat-y,no-repeat",
-          maskRepeat:"repeat-x,repeat-x,repeat-y,repeat-y,no-repeat",
+          background:"transparent",
         }}>
           <Slot slot="top" slotRef={topSlot} cvsRef={topCvs} img={imgs.top}
             ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
+            onWallpaper={(d)=>insertWallpaper(d,"top")}
             isCropping={cropMode==="top"}
             onApplyCrop={(d)=>applyCrop("top",d)}
             onCancelCrop={()=>setCropMode(null)}/>
           <Slot slot="bot" slotRef={botSlot} cvsRef={botCvs} img={imgs.bot}
             ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
+            onWallpaper={(d)=>insertWallpaper(d,"bot")}
             isCropping={cropMode==="bot"}
             onApplyCrop={(d)=>applyCrop("bot",d)}
             onCancelCrop={()=>setCropMode(null)}/>
@@ -447,9 +466,10 @@ export default function PunchCut(){
         )}
       </div>
 
+      {/* ── MOBILE BOTTOM PANEL ── */}
       {isMobile&&(
         <div style={{
-          background:C.panel,
+          background:`url('/icons/punchdd_left_panel.png') center/cover no-repeat, ${C.panel}`,
           borderTop:`1px solid ${C.border}`,
           height:mobileOpen?330:54,
           minHeight:mobileOpen?330:54,
@@ -462,7 +482,7 @@ export default function PunchCut(){
             padding:"0 16px",cursor:"pointer",userSelect:"none",
           }}>
             <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:16,color:C.dark,letterSpacing:2}}>
-              Punch Cut
+              Punchdd
             </div>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
               <div style={{
@@ -501,6 +521,7 @@ export default function PunchCut(){
         </div>
       )}
 
+      {/* ── PREVIEW MODAL ── */}
       {previewUrl&&(
         <div onClick={()=>setPreviewUrl(null)} style={{
           position:"fixed",inset:0,zIndex:100,
@@ -523,7 +544,7 @@ export default function PunchCut(){
               📱 <b>Mobile</b>: press & hold image → save<br/>
               💻 <b>Desktop</b>: click the button below
             </div>
-            <a href={previewUrl} download="punchcut.png" style={{
+            <a href={previewUrl} download="punchdd.png" style={{
               width:"100%",textAlign:"center",
               background:C.accent,color:"#fff",textDecoration:"none",
               padding:"12px",borderRadius:8,
@@ -541,7 +562,8 @@ export default function PunchCut(){
   );
 }
 
-function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,isCropping,onApplyCrop,onCancelCrop}){
+// ── Slot ─────────────────────────────────────────────────
+function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpaper,isCropping,onApplyCrop,onCancelCrop}){
   const hasImg=!!img;
   const SLOT_W=400;
   const slotH=hasImg ? Math.round(SLOT_W*img.naturalHeight/img.naturalWidth) : 240;
@@ -575,7 +597,13 @@ function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,isCroppi
           animation:"rpl 0.6s ease-out forwards",
         }}/>
       ))}
-      {!hasImg&&<UploadZone slot={slot} onFile={f=>onLoad(f,slot)} onUrl={url=>onLoadUrl(url,slot)}/>}
+      <div style={{
+        position:"absolute",top:10,left:12,zIndex:4,
+        fontFamily:"serif",fontStyle:"italic",
+        fontSize:10,letterSpacing:3,pointerEvents:"none",
+        color:hasImg?"rgba(255,255,255,0.5)":C.muted,
+      }}>{slot==="top"?"Top":"Bottom"}</div>
+      {!hasImg&&<UploadZone slot={slot} onFile={f=>onLoad(f,slot)} onUrl={url=>onLoadUrl(url,slot)} onWallpaper={onWallpaper}/>}
       {isCropping&&hasImg&&(
         <CropOverlay img={img} slotW={SLOT_W} slotH={slotH} onApply={onApplyCrop} onCancel={onCancelCrop}/>
       )}
@@ -583,6 +611,7 @@ function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,isCroppi
   );
 }
 
+// ── CropOverlay ───────────────────────────────────────────
 function CropOverlay({img,slotW,slotH,onApply,onCancel}){
   const [rect,setRect]=useState({x:0,y:0,w:slotW,h:slotH});
   const dragRef=useRef(null);
@@ -668,11 +697,19 @@ function CropOverlay({img,slotW,slotH,onApply,onCancel}){
   );
 }
 
-function UploadZone({slot,onFile,onUrl}){
+// ── UploadZone ────────────────────────────────────────────
+function UploadZone({slot,onFile,onUrl,onWallpaper}){
   const inputRef=useRef(null);
   const [tab,setTab]=useState("upload");
+
+  function handleWallpaperSelect(color){
+    const dataUrl=generateTexturedWallpaper(color);
+    onWallpaper(dataUrl);
+  }
+
   return(
-    <div style={{position:"absolute",inset:0,zIndex:5,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:10}}>
+    <div style={{position:"absolute",inset:0,zIndex:5,
+      display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:10}}>
       <div style={{display:"flex",gap:0,background:C.faint,borderRadius:20,padding:2}}>
         {["upload","wallpapers"].map(t=>(
           <button key={t} onClick={()=>setTab(t)} style={{
@@ -683,6 +720,7 @@ function UploadZone({slot,onFile,onUrl}){
           }}>{t}</button>
         ))}
       </div>
+
       {tab==="upload"&&(
         <>
           <div onClick={()=>inputRef.current?.click()} style={{
@@ -695,11 +733,46 @@ function UploadZone({slot,onFile,onUrl}){
             onChange={e=>{if(e.target.files?.[0]) onFile(e.target.files[0]); e.target.value="";}}/>
         </>
       )}
+
       {tab==="wallpapers"&&(
-        <div style={{width:"100%",padding:"0 16px",textAlign:"center"}}>
-          <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:12,color:C.muted,letterSpacing:0.5,lineHeight:1.6}}>
-            Wallpapers coming soon ✦
+        <div style={{width:"100%",padding:"0 20px"}}>
+          <div style={{
+            display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:7,
+          }}>
+            {WALLPAPERS.map(w=>(
+              <div
+                key={w.id}
+                onClick={()=>handleWallpaperSelect(w.color)}
+                title={w.label}
+                style={{
+                  aspectRatio:"1",borderRadius:8,cursor:"pointer",
+                  background:w.color,
+                  border:`2px solid rgba(255,255,255,0.25)`,
+                  boxShadow:"0 2px 8px rgba(0,0,0,0.15)",
+                  transition:"transform 0.12s, box-shadow 0.12s",
+                  overflow:"hidden",
+                }}
+                onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.07)";e.currentTarget.style.boxShadow="0 4px 14px rgba(0,0,0,0.22)";}}
+                onMouseLeave={e=>{e.currentTarget.style.transform="scale(1)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,0.15)";}}
+              >
+                <div style={{
+                  width:"100%",height:"100%",
+                  display:"flex",alignItems:"flex-end",justifyContent:"center",
+                  paddingBottom:4,
+                }}>
+                  <span style={{
+                    fontFamily:"'Jost',sans-serif",fontSize:6,letterSpacing:0.5,
+                    color:"rgba(255,255,255,0.7)",textAlign:"center",lineHeight:1.2,
+                    textShadow:"0 1px 2px rgba(0,0,0,0.3)",
+                  }}>{w.label}</span>
+                </div>
+              </div>
+            ))}
           </div>
+          <p style={{
+            marginTop:8,fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
+            fontSize:10,color:C.muted,textAlign:"center",letterSpacing:0.5,
+          }}>tap to apply ✦</p>
         </div>
       )}
     </div>
