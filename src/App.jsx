@@ -448,8 +448,8 @@ export default function PunchCut(){
           style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",zIndex:0}}
         />
 
-        {/* Stamp card — 800px fixed, natural ratio, responsive on mobile */}
-        <div style={{position:"relative",zIndex:1,width:isMobile?"min(800px, 94vw)":800,flexShrink:0}}>
+        {/* Stamp card — 1200px fixed, natural ratio, responsive on mobile */}
+        <div style={{position:"relative",zIndex:1,width:isMobile?"min(1200px, 94vw)":1200,flexShrink:0}}>
           {/* Stamp image — natural aspect ratio maintained */}
           <img
             src="/icons/stamp_border.png"
@@ -457,11 +457,11 @@ export default function PunchCut(){
             onLoad={e=>setStampRatio(e.target.naturalHeight/e.target.naturalWidth)}
             style={{width:"100%",display:"block",pointerEvents:"none",userSelect:"none"}}
           />
-          {/* Slots — 680px wide, centered inside stamp, fill inner area */}
+          {/* Slots — centered inside stamp inner area */}
           <div style={{
             position:"absolute",
-            top:"8%", bottom:"8%",
-            left:60, right:60,
+            top:"18%", bottom:"12%",
+            left:200, right:200,
             display:"flex", flexDirection:"column",
             overflow:"hidden",
           }}>
