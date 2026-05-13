@@ -452,23 +452,23 @@ export default function PunchCut(){
           style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",zIndex:0}}
         />
 
-        {/* Stamp card — 560px fixed, natural ratio */}
-        <div style={{position:"relative",zIndex:1,width:560,flexShrink:0}}>
+        {/* Stamp card — 800px fixed, natural ratio, responsive on mobile */}
+        <div style={{position:"relative",zIndex:1,width:isMobile?"min(800px, 94vw)":800,flexShrink:0}}>
           {/* Stamp image — natural aspect ratio maintained */}
           <img
             src="/icons/stamp_border.png"
             alt=""
             style={{width:"100%",display:"block",pointerEvents:"none",userSelect:"none"}}
           />
-          {/* Slots — 480px wide, centered inside stamp, fill inner area */}
+          {/* Slots — 680px wide, centered inside stamp, fill inner area */}
           <div style={{
             position:"absolute",
             top:"8%", bottom:"8%",
-            left:40, right:40,
+            left:60, right:60,
             display:"flex", flexDirection:"column",
             overflow:"hidden",
           }}>
-            <div style={{flex:1,position:"relative",overflow:"hidden"}}>
+            <div style={{flex:1,position:"relative",overflow:"hidden",display:"flex",flexDirection:"column"}}>
               <Slot slot="top" slotRef={topSlot} cvsRef={topCvs} img={imgs.top}
                 ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
                 onWallpaper={(d)=>insertWallpaper(d,"top")}
@@ -477,7 +477,7 @@ export default function PunchCut(){
                 onCancelCrop={()=>{ setCropMode(null); setImgs(p=>({...p,top:null})); }}
                 fill={true}/>
             </div>
-            <div style={{flex:1,position:"relative",overflow:"hidden"}}>
+            <div style={{flex:1,position:"relative",overflow:"hidden",display:"flex",flexDirection:"column"}}>
               <Slot slot="bot" slotRef={botSlot} cvsRef={botCvs} img={imgs.bot}
                 ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
                 onWallpaper={(d)=>insertWallpaper(d,"bot")}
@@ -546,20 +546,17 @@ export default function PunchCut(){
             <SizeSlider/>
             <Sep/>
             <ActionButtons/>
-            {hasAnyImg&&!cropMode&&(
-              <>
-                <Sep/>
+            <Sep/>
                 <button className="save-btn" onClick={handleSave} style={{
-                  background:saveClicked?C.activeBlue:"rgba(160,196,224,0.18)",
-                  border:`1.5px solid ${saveClicked?C.activeBlue:"#a0c4e0"}`,
-                  color:saveClicked?"#fff":C.activeBlue,
+                  background:saveClicked?C.activeBlue:"rgba(240,247,252,0.88)",
+                  border:`1.5px solid ${saveClicked?"#7a9ab5":"rgba(160,200,230,0.7)"}`,
+                  color:saveClicked?"#fff":"#6a9ab5",
                   padding:"12px 0",borderRadius:50,
                   fontFamily:"'Jost',sans-serif",fontSize:10,letterSpacing:3,
                   textTransform:"uppercase",cursor:"pointer",
-                  boxShadow:"0 4px 16px rgba(122,154,181,0.25)",
+                  boxShadow:"0 4px 16px rgba(0,0,0,0.1)",
+                  opacity:hasAnyImg?1:0.5,
                 }}>↓ Save</button>
-              </>
-            )}
           </div>
         </div>
       )}
@@ -634,7 +631,7 @@ function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpa
     >
       {hasImg&&<img src={img.src} alt="" style={{
         position:"absolute",inset:0,width:"100%",height:"100%",
-        objectFit:"fill",pointerEvents:"none",
+        objectFit:"cover",pointerEvents:"none",
       }}/>}
       <canvas ref={cvsRef} style={{
         position:"absolute",inset:0,width:"100%",height:"100%",
@@ -838,5 +835,3 @@ function Sep(){return <div style={{height:1,background:"#e6ddd6"}}/>;}
 function Lbl({children,style}){
   return <div style={{fontFamily:"'Jost',sans-serif",fontSize:9,letterSpacing:3,color:"#b5aca5",textTransform:"uppercase",marginBottom:2,...style}}>{children}</div>;
 }
-
-              
