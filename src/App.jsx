@@ -266,17 +266,22 @@ export default function PunchCut(){
     const tC=topCvs.current,bC=botCvs.current;
     const tE=topSlot.current,bE=botSlot.current;
     if(!tE||!bE) return;
-    const W=tE.clientWidth,tH=tE.clientHeight,bH=bE.clientHeight;
+    const W=tE.clientWidth||370;
+    const tH=tE.clientHeight||200;
+    const bH=bE.clientHeight||200;
+    if(!W||(!tH&&!bH)) return;
     const SC=4;
     const out=document.createElement("canvas");
     out.width=W*SC; out.height=(tH+bH)*SC;
     const ctx=out.getContext("2d");
     ctx.imageSmoothingEnabled=true;
     ctx.imageSmoothingQuality="high";
-    if(imgs.top) ctx.drawImage(imgs.top,0,0,W*SC,tH*SC);
-    if(imgs.bot) ctx.drawImage(imgs.bot,0,tH*SC,W*SC,bH*SC);
-    if(tC) ctx.drawImage(tC,0,0,W*SC,tH*SC);
-    if(bC) ctx.drawImage(bC,0,tH*SC,W*SC,bH*SC);
+    try{
+      if(imgs.top) ctx.drawImage(imgs.top,0,0,W*SC,tH*SC);
+      if(imgs.bot) ctx.drawImage(imgs.bot,0,tH*SC,W*SC,bH*SC);
+      if(tC&&tC.width>0) ctx.drawImage(tC,0,0,W*SC,tH*SC);
+      if(bC&&bC.width>0) ctx.drawImage(bC,0,tH*SC,W*SC,bH*SC);
+    }catch(e){ console.error("export error",e); }
     setPreviewUrl(out.toDataURL("image/png"));
   }
 
@@ -436,35 +441,55 @@ export default function PunchCut(){
 
       {/* ── MAIN CANVAS ── */}
       <div style={{
-        flex:1,display:"flex",flexDirection:"column",
-        alignItems:"center",justifyContent:isMobile?"flex-start":"center",
-        padding:isMobile?"16px 12px 10px":0,
-        overflow:"auto",
-        background:`url('/icons/punchdd%20right%20panel.png') center/cover no-repeat`,
-        backgroundColor:"#8fadc5",
+        flex:1, position:"relative", overflow:"hidden",
+        display:"flex", alignItems:"center", justifyContent:"center",
       }}>
-        {/* Slot card — scales with panel like the stamp background */}
-        <div style={{
-          width:"52%",overflow:"visible",position:"relative",
-          background:"transparent",
-        }}>
-          <Slot slot="top" slotRef={topSlot} cvsRef={topCvs} img={imgs.top}
-            ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
-            onWallpaper={(d)=>insertWallpaper(d,"top")}
-            isCropping={cropMode==="top"}
-            onApplyCrop={(d)=>applyCrop("top",d)}
-            onCancelCrop={()=>{ setCropMode(null); setImgs(p=>({...p,top:null})); }}/>
-          <Slot slot="bot" slotRef={botSlot} cvsRef={botCvs} img={imgs.bot}
-            ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
-            onWallpaper={(d)=>insertWallpaper(d,"bot")}
-            isCropping={cropMode==="bot"}
-            onApplyCrop={(d)=>applyCrop("bot",d)}
-            onCancelCrop={()=>{ setCropMode(null); setImgs(p=>({...p,bot:null})); }}/>
+        {/* Background layer — scales with viewport */}
+        <img
+          src="/icons/vintage_blue_background.jpg"
+          alt=""
+          style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",zIndex:0}}
+        />
+
+        {/* Stamp + Slots — fixed size, centered */}
+        <div style={{position:"relative",zIndex:1,width:370,flexShrink:0}}>
+          {/* Stamp border image */}
+          <img
+            src="/icons/stamp_border.png"
+            alt=""
+            style={{width:"100%",display:"block",pointerEvents:"none",userSelect:"none"}}
+          />
+          {/* Slots inside stamp inner white area */}
+          <div style={{
+            position:"absolute",
+            top:"10%",left:"9%",right:"9%",bottom:"10%",
+            display:"flex",flexDirection:"column",
+            overflow:"hidden",
+          }}>
+            <div style={{flex:1,position:"relative",overflow:"hidden"}}>
+              <Slot slot="top" slotRef={topSlot} cvsRef={topCvs} img={imgs.top}
+                ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
+                onWallpaper={(d)=>insertWallpaper(d,"top")}
+                isCropping={cropMode==="top"}
+                onApplyCrop={(d)=>applyCrop("top",d)}
+                onCancelCrop={()=>{ setCropMode(null); setImgs(p=>({...p,top:null})); }}
+                fill={true}/>
+            </div>
+            <div style={{flex:1,position:"relative",overflow:"hidden"}}>
+              <Slot slot="bot" slotRef={botSlot} cvsRef={botCvs} img={imgs.bot}
+                ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
+                onWallpaper={(d)=>insertWallpaper(d,"bot")}
+                isCropping={cropMode==="bot"}
+                onApplyCrop={(d)=>applyCrop("bot",d)}
+                onCancelCrop={()=>{ setCropMode(null); setImgs(p=>({...p,bot:null})); }}
+                fill={true}/>
+            </div>
+          </div>
         </div>
 
-        {/* Save button — below slots, outside stamp white area */}
+        {/* Save button — fixed to bottom of right panel */}
         {!isMobile&&!cropMode&&(
-          <div style={{marginTop:16,marginBottom:20}}>
+          <div style={{position:"absolute",bottom:24,left:"50%",transform:"translateX(-50%)",zIndex:2}}>
             <button className="save-btn" onClick={handleSave} style={{
               background:saveClicked?C.activeBlue:"rgba(240,247,252,0.88)",
               border:`1.5px solid ${saveClicked?"#7a9ab5":"rgba(160,200,230,0.7)"}`,
@@ -477,15 +502,6 @@ export default function PunchCut(){
             }}>↓ Save</button>
           </div>
         )}
-
-        <p style={{
-          marginTop:14,fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
-          fontSize:13,color:"#d8e4ef",letterSpacing:1,textAlign:"center",
-        }}>
-          {cropMode
-            ? "Drag edges or corners to crop ✦"
-            : (!imgs.top&&!imgs.bot ? "Add an image to get started" : "Click the image to punch a hole ✦")}
-        </p>
 
       </div>
 
@@ -588,7 +604,7 @@ export default function PunchCut(){
 }
 
 // ── Slot ─────────────────────────────────────────────────
-function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpaper,isCropping,onApplyCrop,onCancelCrop}){
+function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpaper,isCropping,onApplyCrop,onCancelCrop,fill=false}){
   const hasImg=!!img;
   const [actualW,setActualW]=useState(400);
   useEffect(()=>{
@@ -600,7 +616,7 @@ function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpa
     return ()=>ro.disconnect();
   },[slotRef]);
   const SLOT_W=actualW;
-  const slotH=hasImg ? Math.round(SLOT_W*img.naturalHeight/img.naturalWidth) : Math.round(SLOT_W*0.72);
+  const slotH=fill?"100%":(hasImg ? Math.round(SLOT_W*img.naturalHeight/img.naturalWidth) : Math.round(SLOT_W*0.72));
 
   return(
     <div ref={slotRef} style={{
