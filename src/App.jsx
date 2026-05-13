@@ -208,7 +208,7 @@ export default function PunchCut(){
   // Insert wallpaper directly without triggering crop mode
   function insertWallpaper(dataUrl, slot){
     const img=new Image();
-    img.onload=()=>setImgs(p=>({...p,[slot]:img}));
+    img.onload=()=>{ setImgs(p=>({...p,[slot]:img})); setCropMode(slot); };
     img.src=dataUrl;
   }
 
@@ -376,7 +376,7 @@ export default function PunchCut(){
       {!isMobile&&(
         <div style={{
           width:open?238:40,minWidth:open?238:40,
-          background:`url('/icons/punchdd_left_panel.png') center/cover no-repeat, ${C.panel}`,
+          background:`url('/icons/punchdd%20left%20panel.png') center/cover no-repeat, ${C.panel}`,
           borderRight:`1px solid ${C.border}`,
           display:"flex",flexDirection:"column",
           transition:"width .3s ease,min-width .3s ease",
@@ -425,7 +425,7 @@ export default function PunchCut(){
         alignItems:"center",justifyContent:isMobile?"flex-start":"center",
         padding:isMobile?"16px 12px 10px":24,
         overflow:"auto",
-        background:"url('/icons/punchdd_right_panel.png') center/cover no-repeat",
+        background:"url('/icons/punchdd%20right%20panel.png') center/cover no-repeat",
       }}>
         {/* Slot card — transparent, no border/shadow; stamp image provides the frame */}
         <div style={{
@@ -469,7 +469,7 @@ export default function PunchCut(){
       {/* ── MOBILE BOTTOM PANEL ── */}
       {isMobile&&(
         <div style={{
-          background:`url('/icons/punchdd_left_panel.png') center/cover no-repeat, ${C.panel}`,
+          background:`url('/icons/punchdd%20left%20panel.png') center/cover no-repeat, ${C.panel}`,
           borderTop:`1px solid ${C.border}`,
           height:mobileOpen?330:54,
           minHeight:mobileOpen?330:54,
@@ -745,28 +745,13 @@ function UploadZone({slot,onFile,onUrl,onWallpaper}){
                 onClick={()=>handleWallpaperSelect(w.color)}
                 title={w.label}
                 style={{
-                  aspectRatio:"1",borderRadius:8,cursor:"pointer",
+                  aspectRatio:"1",borderRadius:4,cursor:"pointer",
                   background:w.color,
-                  border:`2px solid rgba(255,255,255,0.25)`,
-                  boxShadow:"0 2px 8px rgba(0,0,0,0.15)",
-                  transition:"transform 0.12s, box-shadow 0.12s",
+                  border:`1.5px solid rgba(255,255,255,0.2)`,
+                  boxShadow:"0 1px 5px rgba(0,0,0,0.12)",
                   overflow:"hidden",
                 }}
-                onMouseEnter={e=>{e.currentTarget.style.transform="scale(1.07)";e.currentTarget.style.boxShadow="0 4px 14px rgba(0,0,0,0.22)";}}
-                onMouseLeave={e=>{e.currentTarget.style.transform="scale(1)";e.currentTarget.style.boxShadow="0 2px 8px rgba(0,0,0,0.15)";}}
-              >
-                <div style={{
-                  width:"100%",height:"100%",
-                  display:"flex",alignItems:"flex-end",justifyContent:"center",
-                  paddingBottom:4,
-                }}>
-                  <span style={{
-                    fontFamily:"'Jost',sans-serif",fontSize:6,letterSpacing:0.5,
-                    color:"rgba(255,255,255,0.7)",textAlign:"center",lineHeight:1.2,
-                    textShadow:"0 1px 2px rgba(0,0,0,0.3)",
-                  }}>{w.label}</span>
-                </div>
-              </div>
+              />
             ))}
           </div>
           <p style={{
