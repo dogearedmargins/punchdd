@@ -113,7 +113,9 @@ export default function PunchCut(){
   const [isMobile,setIsMobile] = useState(()=>window.innerWidth<640);
   const [mobileOpen,setMobileOpen] = useState(false);
   const [saveClicked,setSaveClicked] = useState(false);
-  const [panelTexture,setPanelTexture] = useState('');
+  const [stampRatio,setStampRatio] = useState(1.55); // fallback ratio
+  const STAMP_W = isMobile ? Math.min(800, window.innerWidth*0.94) : 800;
+  const SLOT_H_FIXED = Math.round(STAMP_W * stampRatio * 0.84 / 2);
 
   const topSlot=useRef(null), botSlot=useRef(null);
   const topCvs=useRef(null),  botCvs=useRef(null);
@@ -458,6 +460,7 @@ export default function PunchCut(){
           <img
             src="/icons/stamp_border.png"
             alt=""
+            onLoad={e=>setStampRatio(e.target.naturalHeight/e.target.naturalWidth)}
             style={{width:"100%",display:"block",pointerEvents:"none",userSelect:"none"}}
           />
           {/* Slots — 680px wide, centered inside stamp, fill inner area */}
@@ -468,30 +471,28 @@ export default function PunchCut(){
             display:"flex", flexDirection:"column",
             overflow:"hidden",
           }}>
-            <div style={{flex:1,position:"relative",overflow:"hidden",display:"flex",flexDirection:"column",minHeight:0}}>
+            <div style={{position:"relative",overflow:"hidden"}}>
               <Slot slot="top" slotRef={topSlot} cvsRef={topCvs} img={imgs.top}
                 ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
                 onWallpaper={(d)=>insertWallpaper(d,"top")}
                 isCropping={cropMode==="top"}
                 onApplyCrop={(d)=>applyCrop("top",d)}
-                onCancelCrop={()=>{ setCropMode(null); setImgs(p=>({...p,top:null})); }}
-                fill={true}/>
+                onCancelCrop={()=>{ setCropMode(null); setImgs(p=>({...p,top:null})); }}/>
             </div>
-            <div style={{flex:1,position:"relative",overflow:"hidden",display:"flex",flexDirection:"column",minHeight:0}}>
+            <div style={{position:"relative",overflow:"hidden"}}>
               <Slot slot="bot" slotRef={botSlot} cvsRef={botCvs} img={imgs.bot}
                 ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
                 onWallpaper={(d)=>insertWallpaper(d,"bot")}
                 isCropping={cropMode==="bot"}
                 onApplyCrop={(d)=>applyCrop("bot",d)}
-                onCancelCrop={()=>{ setCropMode(null); setImgs(p=>({...p,bot:null})); }}
-                fill={true}/>
+                onCancelCrop={()=>{ setCropMode(null); setImgs(p=>({...p,bot:null})); }}/>
             </div>
           </div>
         </div>
 
         {/* Save button — just below stamp */}
         {!isMobile&&!cropMode&&(
-          <div style={{position:"relative",zIndex:1,marginTop:8}}>
+          <div style={{position:"relative",zIndex:1,marginTop:4}}>
             <button className="save-btn" onClick={handleSave} style={{
               background:saveClicked?C.activeBlue:"rgba(240,247,252,0.88)",
               border:`1.5px solid ${saveClicked?"#7a9ab5":"rgba(160,200,230,0.7)"}`,
@@ -603,30 +604,22 @@ export default function PunchCut(){
 }
 
 // ── Slot ─────────────────────────────────────────────────
-function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpaper,isCropping,onApplyCrop,onCancelCrop,fill=false}){
+function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpaper,isCropping,onApplyCrop,onCancelCrop}){
   const hasImg=!!img;
   const [actualW,setActualW]=useState(400);
-  const [actualH,setActualH]=useState(300);
   useEffect(()=>{
     if(!slotRef.current) return;
-    const ro=new ResizeObserver(entries=>{
-      setActualW(entries[0].contentRect.width||400);
-      setActualH(entries[0].contentRect.height||300);
-    });
+    const ro=new ResizeObserver(entries=>setActualW(entries[0].contentRect.width||400));
     ro.observe(slotRef.current);
     return ()=>ro.disconnect();
   },[slotRef]);
   const SLOT_W=actualW;
-  const SLOT_H=actualH;
-  const slotH=fill?"100%":(hasImg?Math.round(SLOT_W*img.naturalHeight/img.naturalWidth):Math.round(SLOT_W*0.72));
+  const slotH=hasImg?Math.round(SLOT_W*img.naturalHeight/img.naturalWidth):Math.round(SLOT_W*0.72);
 
   return(
     <div ref={slotRef} style={{
-      position:fill?"absolute":"relative",
-      inset:fill?0:undefined,
-      width:"100%",
-      height:fill?"100%":slotH,
-      overflow:isCropping?"visible":"hidden",
+      position:"relative",width:"100%",height:slotH,
+      overflow:"hidden",
       background:"transparent",
       cursor:isCropping?"default":(hasImg?"crosshair":"pointer"),
     }}
@@ -660,7 +653,7 @@ function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpa
       }}>{slot==="top"?"Top":"Bottom"}</div>
       {!hasImg&&<UploadZone slot={slot} onFile={f=>onLoad(f,slot)} onUrl={url=>onLoadUrl(url,slot)} onWallpaper={onWallpaper}/>}
       {isCropping&&hasImg&&(
-        <CropOverlay img={img} slotW={SLOT_W} slotH={fill?SLOT_H:slotH} onApply={onApplyCrop} onCancel={onCancelCrop}/>
+        <CropOverlay img={img} slotW={SLOT_W} slotH={slotH} onApply={onApplyCrop} onCancel={onCancelCrop}/>
       )}
     </div>
   );
@@ -764,8 +757,12 @@ function UploadZone({slot,onFile,onUrl,onWallpaper}){
   }
 
   return(
-    <div style={{position:"absolute",inset:0,zIndex:5,
-      display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:10}}>
+    <div style={{
+      position:"absolute",inset:0,zIndex:5,
+      display:"flex",flexDirection:"column",
+      alignItems:"center",justifyContent:"center",
+      gap:10,
+    }}>
       <div style={{display:"flex",gap:0,background:C.faint,borderRadius:20,padding:2}}>
         {["upload","wallpapers"].map(t=>(
           <button key={t} onClick={()=>setTab(t)} style={{
