@@ -468,7 +468,7 @@ export default function PunchCut(){
             display:"flex", flexDirection:"column",
             overflow:"hidden",
           }}>
-            <div style={{flex:1,position:"relative",overflow:"hidden",display:"flex",flexDirection:"column"}}>
+            <div style={{flex:1,position:"relative",overflow:"hidden",display:"flex",flexDirection:"column",minHeight:0}}>
               <Slot slot="top" slotRef={topSlot} cvsRef={topCvs} img={imgs.top}
                 ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
                 onWallpaper={(d)=>insertWallpaper(d,"top")}
@@ -477,7 +477,7 @@ export default function PunchCut(){
                 onCancelCrop={()=>{ setCropMode(null); setImgs(p=>({...p,top:null})); }}
                 fill={true}/>
             </div>
-            <div style={{flex:1,position:"relative",overflow:"hidden",display:"flex",flexDirection:"column"}}>
+            <div style={{flex:1,position:"relative",overflow:"hidden",display:"flex",flexDirection:"column",minHeight:0}}>
               <Slot slot="bot" slotRef={botSlot} cvsRef={botCvs} img={imgs.bot}
                 ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
                 onWallpaper={(d)=>insertWallpaper(d,"bot")}
@@ -606,22 +606,28 @@ export default function PunchCut(){
 function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpaper,isCropping,onApplyCrop,onCancelCrop,fill=false}){
   const hasImg=!!img;
   const [actualW,setActualW]=useState(400);
+  const [actualH,setActualH]=useState(300);
   useEffect(()=>{
     if(!slotRef.current) return;
     const ro=new ResizeObserver(entries=>{
       setActualW(entries[0].contentRect.width||400);
+      setActualH(entries[0].contentRect.height||300);
     });
     ro.observe(slotRef.current);
     return ()=>ro.disconnect();
   },[slotRef]);
   const SLOT_W=actualW;
+  const SLOT_H=actualH;
   const slotH=fill?"100%":(hasImg?Math.round(SLOT_W*img.naturalHeight/img.naturalWidth):Math.round(SLOT_W*0.72));
 
   return(
     <div ref={slotRef} style={{
-      position:"relative",width:"100%",height:slotH,
+      position:fill?"absolute":"relative",
+      inset:fill?0:undefined,
+      width:"100%",
+      height:fill?"100%":slotH,
       overflow:isCropping?"visible":"hidden",
-      background:hasImg?"transparent":"transparent",
+      background:"transparent",
       cursor:isCropping?"default":(hasImg?"crosshair":"pointer"),
     }}
       onClick={e=>{if(hasImg&&!isCropping) onPunch(e,slot);}}
@@ -654,7 +660,7 @@ function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpa
       }}>{slot==="top"?"Top":"Bottom"}</div>
       {!hasImg&&<UploadZone slot={slot} onFile={f=>onLoad(f,slot)} onUrl={url=>onLoadUrl(url,slot)} onWallpaper={onWallpaper}/>}
       {isCropping&&hasImg&&(
-        <CropOverlay img={img} slotW={SLOT_W} slotH={slotH} onApply={onApplyCrop} onCancel={onCancelCrop}/>
+        <CropOverlay img={img} slotW={SLOT_W} slotH={fill?SLOT_H:slotH} onApply={onApplyCrop} onCancel={onCancelCrop}/>
       )}
     </div>
   );
