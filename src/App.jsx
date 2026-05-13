@@ -391,7 +391,7 @@ export default function PunchCut(){
       {/* ── DESKTOP SIDEBAR ── */}
       {!isMobile&&(
         <div style={{
-          width:open?238:40,minWidth:open?238:40,
+          width:open?260:40,minWidth:open?260:40,
           background:`url('/icons/punchdd%20left%20panel.png') center/cover no-repeat, ${C.panel}`,
           borderRight:`1px solid ${C.border}`,
           display:"flex",flexDirection:"column",
@@ -411,7 +411,7 @@ export default function PunchCut(){
             opacity:open?1:0,transition:"opacity .18s",
             pointerEvents:open?"auto":"none",
             display:"flex",flexDirection:"column",gap:18,
-            padding:"16px 14px",overflowY:"auto",flex:1,minWidth:238,
+            padding:"16px 14px",overflowY:"auto",flex:1,minWidth:260,
           }}>
             <div style={{paddingTop:2,paddingRight:28}}>
               <div style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",fontSize:22,color:C.dark,letterSpacing:2,fontWeight:300}}>Punchdd</div>
@@ -449,7 +449,7 @@ export default function PunchCut(){
         />
 
         {/* Stamp card — 1200px fixed, natural ratio, responsive on mobile */}
-        <div style={{position:"relative",zIndex:1,width:isMobile?"min(1200px, 94vw)":1200,flexShrink:0}}>
+        <div style={{position:"relative",zIndex:1,width:isMobile?"min(1200px, 98vw)":1200,flexShrink:0}}>
           {/* Stamp image — natural aspect ratio maintained */}
           <img
             src="/icons/stamp_border.png"
@@ -461,7 +461,8 @@ export default function PunchCut(){
           <div style={{
             position:"absolute",
             top:"18%", bottom:"12%",
-            left:200, right:200,
+            left:isMobile?"34%":400,
+            right:isMobile?"34%":400,
             display:"flex", flexDirection:"column",
             overflow:"hidden",
           }}>
