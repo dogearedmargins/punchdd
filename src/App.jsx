@@ -445,55 +445,53 @@ export default function PunchCut(){
         display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
         padding:"24px 0",
       }}>
-        {/* Background layer — scales with viewport */}
+        {/* Background — scales with viewport */}
         <img
           src="/icons/vintage_blue_background.jpg"
           alt=""
           style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",zIndex:0}}
         />
 
-        {/* Stamp + Slots — fixed 480px, centered */}
-        <div style={{position:"relative",zIndex:1,width:480,flexShrink:0}}>
-          {/* Stamp border as background — stretches to fit slot area */}
+        {/* Stamp card — 560px fixed, natural ratio */}
+        <div style={{position:"relative",zIndex:1,width:560,flexShrink:0}}>
+          {/* Stamp image — natural aspect ratio maintained */}
           <img
             src="/icons/stamp_border.png"
             alt=""
-            style={{
-              position:"absolute",inset:0,
-              width:"100%",height:"100%",
-              objectFit:"fill",
-              pointerEvents:"none",userSelect:"none",
-              zIndex:0,
-            }}
+            style={{width:"100%",display:"block",pointerEvents:"none",userSelect:"none"}}
           />
-          {/* Slots inside stamp with padding to show scalloped border */}
+          {/* Slots — 480px wide, centered inside stamp, fill inner area */}
           <div style={{
-            position:"relative",zIndex:1,
-            padding:"18px",
-            display:"flex",flexDirection:"column",
+            position:"absolute",
+            top:"8%", bottom:"8%",
+            left:40, right:40,
+            display:"flex", flexDirection:"column",
+            overflow:"hidden",
           }}>
-            <div style={{position:"relative",overflow:"hidden"}}>
+            <div style={{flex:1,position:"relative",overflow:"hidden"}}>
               <Slot slot="top" slotRef={topSlot} cvsRef={topCvs} img={imgs.top}
                 ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
                 onWallpaper={(d)=>insertWallpaper(d,"top")}
                 isCropping={cropMode==="top"}
                 onApplyCrop={(d)=>applyCrop("top",d)}
-                onCancelCrop={()=>{ setCropMode(null); setImgs(p=>({...p,top:null})); }}/>
+                onCancelCrop={()=>{ setCropMode(null); setImgs(p=>({...p,top:null})); }}
+                fill={true}/>
             </div>
-            <div style={{position:"relative",overflow:"hidden"}}>
+            <div style={{flex:1,position:"relative",overflow:"hidden"}}>
               <Slot slot="bot" slotRef={botSlot} cvsRef={botCvs} img={imgs.bot}
                 ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
                 onWallpaper={(d)=>insertWallpaper(d,"bot")}
                 isCropping={cropMode==="bot"}
                 onApplyCrop={(d)=>applyCrop("bot",d)}
-                onCancelCrop={()=>{ setCropMode(null); setImgs(p=>({...p,bot:null})); }}/>
+                onCancelCrop={()=>{ setCropMode(null); setImgs(p=>({...p,bot:null})); }}
+                fill={true}/>
             </div>
           </div>
         </div>
 
-        {/* Save button — right below stamp, not overlapping */}
+        {/* Save button — just below stamp */}
         {!isMobile&&!cropMode&&(
-          <div style={{position:"relative",zIndex:1,marginTop:16}}>
+          <div style={{position:"relative",zIndex:1,marginTop:8}}>
             <button className="save-btn" onClick={handleSave} style={{
               background:saveClicked?C.activeBlue:"rgba(240,247,252,0.88)",
               border:`1.5px solid ${saveClicked?"#7a9ab5":"rgba(160,200,230,0.7)"}`,
@@ -608,7 +606,7 @@ export default function PunchCut(){
 }
 
 // ── Slot ─────────────────────────────────────────────────
-function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpaper,isCropping,onApplyCrop,onCancelCrop}){
+function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpaper,isCropping,onApplyCrop,onCancelCrop,fill=false}){
   const hasImg=!!img;
   const [actualW,setActualW]=useState(400);
   useEffect(()=>{
@@ -620,7 +618,7 @@ function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpa
     return ()=>ro.disconnect();
   },[slotRef]);
   const SLOT_W=actualW;
-  const slotH=hasImg ? Math.round(SLOT_W*img.naturalHeight/img.naturalWidth) : Math.round(SLOT_W*0.72);
+  const slotH=fill?"100%":(hasImg?Math.round(SLOT_W*img.naturalHeight/img.naturalWidth):Math.round(SLOT_W*0.72));
 
   return(
     <div ref={slotRef} style={{
@@ -840,3 +838,5 @@ function Sep(){return <div style={{height:1,background:"#e6ddd6"}}/>;}
 function Lbl({children,style}){
   return <div style={{fontFamily:"'Jost',sans-serif",fontSize:9,letterSpacing:3,color:"#b5aca5",textTransform:"uppercase",marginBottom:2,...style}}>{children}</div>;
 }
+
+              
