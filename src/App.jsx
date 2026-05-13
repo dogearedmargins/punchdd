@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from "react";
 
 const SHAPES = [
   { id:"circle",    label:"Circle"    },
@@ -112,6 +112,7 @@ export default function PunchCut(){
   const [previewUrl,setPreviewUrl] = useState(null);
   const [isMobile,setIsMobile] = useState(()=>window.innerWidth<640);
   const [mobileOpen,setMobileOpen] = useState(false);
+  const [saveClicked,setSaveClicked] = useState(false);
 
   const topSlot=useRef(null), botSlot=useRef(null);
   const topCvs=useRef(null),  botCvs=useRef(null);
@@ -274,6 +275,12 @@ export default function PunchCut(){
     setPreviewUrl(out.toDataURL("image/png"));
   }
 
+  function handleSave(){
+    exportImg();
+    setSaveClicked(true);
+    setTimeout(()=>setSaveClicked(false),500);
+  }
+
   const sbtn=(active)=>({
     background:active?"rgba(160,196,224,0.18)":C.white,
     border:`1.5px solid ${active?"#a0c4e0":C.border}`,
@@ -336,7 +343,7 @@ export default function PunchCut(){
           </svg>
           Undo
         </button>
-        <button onClick={()=>setHoles([])} style={{
+        <button onClick={()=>{ setHoles([]); setImgs({top:null,bot:null}); setCropMode(null); }} style={{
           flex:1,padding:"9px 0",
           background:"transparent",border:`1px solid ${C.border}`,
           borderRadius:8,cursor:"pointer",
@@ -369,6 +376,9 @@ export default function PunchCut(){
         @keyframes rpl{from{opacity:.7;transform:scale(.2)}to{opacity:0;transform:scale(2.2)}}
         input[type=range]{-webkit-appearance:none;width:100%;height:1px;background:${C.border};border-radius:1px;outline:none}
         input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#9fb3c8;cursor:pointer;border:2px solid ${C.white};box-shadow:0 1px 4px rgba(0,0,0,.12)}
+        .save-btn{transition:all 0.2s ease;transform:scale(1)}
+        .save-btn:hover{transform:scale(1.04);box-shadow:0 8px 24px rgba(122,154,181,0.4)!important}
+        .save-btn:active{transform:scale(0.97)}
         *{box-sizing:border-box}
       `}</style>
 
@@ -425,11 +435,11 @@ export default function PunchCut(){
         alignItems:"center",justifyContent:isMobile?"flex-start":"center",
         padding:isMobile?"16px 12px 10px":24,
         overflow:"auto",
-        background:"url('/icons/punchdd%20right%20panel.png') center/cover no-repeat",
+        background:`#8fadc5 url('/icons/punchdd%20right%20panel.png') center/cover no-repeat`,
       }}>
         {/* Slot card — transparent, no border/shadow; stamp image provides the frame */}
         <div style={{
-          width:400,overflow:"visible",position:"relative",
+          width:"clamp(280px, 52%, 460px)",overflow:"visible",position:"relative",
           background:"transparent",
         }}>
           <Slot slot="top" slotRef={topSlot} cvsRef={topCvs} img={imgs.top}
@@ -456,12 +466,15 @@ export default function PunchCut(){
         </p>
 
         {!isMobile&&hasAnyImg&&!cropMode&&(
-          <button onClick={exportImg} style={{
-            marginTop:16,background:C.accent,border:"none",color:"#fff",
+          <button className="save-btn" onClick={handleSave} style={{
+            marginTop:16,
+            background:saveClicked?C.activeBlue:"rgba(240,247,252,0.88)",
+            border:`1.5px solid ${saveClicked?"#7a9ab5":"rgba(160,200,230,0.7)"}`,
+            color:saveClicked?"#fff":"#6a9ab5",
             padding:"12px 40px",borderRadius:50,
             fontFamily:"'Jost',sans-serif",fontSize:10,letterSpacing:3,
             textTransform:"uppercase",cursor:"pointer",
-            boxShadow:"0 6px 20px rgba(196,160,144,.4)",
+            boxShadow:"0 4px 16px rgba(0,0,0,0.1)",
           }}>↓ Save</button>
         )}
       </div>
@@ -508,12 +521,14 @@ export default function PunchCut(){
             {hasAnyImg&&!cropMode&&(
               <>
                 <Sep/>
-                <button onClick={exportImg} style={{
-                  background:C.accent,border:"none",color:"#fff",
+                <button className="save-btn" onClick={handleSave} style={{
+                  background:saveClicked?C.activeBlue:"rgba(160,196,224,0.18)",
+                  border:`1.5px solid ${saveClicked?C.activeBlue:"#a0c4e0"}`,
+                  color:saveClicked?"#fff":C.activeBlue,
                   padding:"12px 0",borderRadius:50,
                   fontFamily:"'Jost',sans-serif",fontSize:10,letterSpacing:3,
                   textTransform:"uppercase",cursor:"pointer",
-                  boxShadow:"0 6px 20px rgba(196,160,144,.4)",
+                  boxShadow:"0 4px 16px rgba(122,154,181,0.25)",
                 }}>↓ Save</button>
               </>
             )}
@@ -565,7 +580,16 @@ export default function PunchCut(){
 // ── Slot ─────────────────────────────────────────────────
 function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpaper,isCropping,onApplyCrop,onCancelCrop}){
   const hasImg=!!img;
-  const SLOT_W=400;
+  const [actualW,setActualW]=useState(400);
+  useEffect(()=>{
+    if(!slotRef.current) return;
+    const ro=new ResizeObserver(entries=>{
+      setActualW(entries[0].contentRect.width||400);
+    });
+    ro.observe(slotRef.current);
+    return ()=>ro.disconnect();
+  },[slotRef]);
+  const SLOT_W=actualW;
   const slotH=hasImg ? Math.round(SLOT_W*img.naturalHeight/img.naturalWidth) : 240;
 
   return(
@@ -700,6 +724,7 @@ function CropOverlay({img,slotW,slotH,onApply,onCancel}){
 // ── UploadZone ────────────────────────────────────────────
 function UploadZone({slot,onFile,onUrl,onWallpaper}){
   const inputRef=useRef(null);
+  const colorInputRef=useRef(null);
   const [tab,setTab]=useState("upload");
 
   function handleWallpaperSelect(color){
@@ -735,9 +760,9 @@ function UploadZone({slot,onFile,onUrl,onWallpaper}){
       )}
 
       {tab==="wallpapers"&&(
-        <div style={{width:"100%",padding:"0 20px"}}>
+        <div style={{width:"100%",padding:"0 16px"}}>
           <div style={{
-            display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:7,
+            display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:5,
           }}>
             {WALLPAPERS.map(w=>(
               <div
@@ -748,14 +773,31 @@ function UploadZone({slot,onFile,onUrl,onWallpaper}){
                   aspectRatio:"1",borderRadius:4,cursor:"pointer",
                   background:w.color,
                   border:`1.5px solid rgba(255,255,255,0.2)`,
-                  boxShadow:"0 1px 5px rgba(0,0,0,0.12)",
-                  overflow:"hidden",
+                  boxShadow:"0 1px 4px rgba(0,0,0,0.1)",
                 }}
               />
             ))}
+            {/* Custom color picker */}
+            <div
+              onClick={()=>colorInputRef.current?.click()}
+              title="Custom color"
+              style={{
+                aspectRatio:"1",borderRadius:4,cursor:"pointer",
+                background:C.faint,
+                border:`1.5px dashed ${C.muted}`,
+                display:"flex",alignItems:"center",justifyContent:"center",
+                fontSize:16,color:C.muted,
+              }}
+            >+</div>
+            <input
+              ref={colorInputRef}
+              type="color"
+              style={{display:"none"}}
+              onChange={e=>handleWallpaperSelect(e.target.value)}
+            />
           </div>
           <p style={{
-            marginTop:8,fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
+            marginTop:7,fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
             fontSize:10,color:C.muted,textAlign:"center",letterSpacing:0.5,
           }}>tap to apply ✦</p>
         </div>
