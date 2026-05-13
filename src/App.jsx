@@ -113,17 +113,11 @@ export default function PunchCut(){
   const [isMobile,setIsMobile] = useState(()=>window.innerWidth<640);
   const [mobileOpen,setMobileOpen] = useState(false);
   const [saveClicked,setSaveClicked] = useState(false);
-  const [stampRatio,setStampRatio] = useState(1.55); // fallback ratio
-  const STAMP_W = isMobile ? Math.min(800, window.innerWidth*0.94) : 800;
-  const SLOT_H_FIXED = Math.round(STAMP_W * stampRatio * 0.84 / 2);
+  const [stampRatio,setStampRatio] = useState(1.55);
 
   const topSlot=useRef(null), botSlot=useRef(null);
   const topCvs=useRef(null),  botCvs=useRef(null);
   const drawRef=useRef(null);
-
-  useEffect(()=>{
-    setPanelTexture(generateTexturedWallpaper('#8fadc5'));
-  },[]);
 
   useEffect(()=>{
     const h=()=>setIsMobile(window.innerWidth<640);
