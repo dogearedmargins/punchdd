@@ -449,7 +449,7 @@ export default function PunchCut(){
         <img
           src="/icons/vintage_blue_background.jpg"
           alt=""
-          style={{position:"fixed",inset:0,width:"100%",height:"100%",objectFit:"cover",zIndex:0}}
+          style={{position:"absolute",inset:0,width:"100%",height:"100%",objectFit:"cover",zIndex:0}}
         />
 
         {/* Stamp + Slots — fixed 480px, centered */}
@@ -626,7 +626,7 @@ function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpa
     <div ref={slotRef} style={{
       position:"relative",width:"100%",height:slotH,
       overflow:isCropping?"visible":"hidden",
-      background:hasImg?"transparent":C.faint,
+      background:hasImg?"transparent":"transparent",
       cursor:isCropping?"default":(hasImg?"crosshair":"pointer"),
     }}
       onClick={e=>{if(hasImg&&!isCropping) onPunch(e,slot);}}
