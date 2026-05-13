@@ -438,13 +438,14 @@ export default function PunchCut(){
       <div style={{
         flex:1,display:"flex",flexDirection:"column",
         alignItems:"center",justifyContent:isMobile?"flex-start":"center",
-        padding:isMobile?"16px 12px 10px":24,
+        padding:isMobile?"16px 12px 10px":0,
         overflow:"auto",
-        background:`url('/icons/punchdd%20right%20panel.png') center/contain no-repeat, ${panelTexture ? `url(${panelTexture}) center/cover` : '#8fadc5'}`,
+        background:`url('/icons/punchdd%20right%20panel.png') center/cover no-repeat`,
+        backgroundColor:"#8fadc5",
       }}>
-        {/* Slot card — transparent, no border/shadow; stamp image provides the frame */}
+        {/* Slot card — scales with panel like the stamp background */}
         <div style={{
-          width:"clamp(280px, 52%, 460px)",overflow:"visible",position:"relative",
+          width:"52%",overflow:"visible",position:"relative",
           background:"transparent",
         }}>
           <Slot slot="top" slotRef={topSlot} cvsRef={topCvs} img={imgs.top}
@@ -459,21 +460,23 @@ export default function PunchCut(){
             isCropping={cropMode==="bot"}
             onApplyCrop={(d)=>applyCrop("bot",d)}
             onCancelCrop={()=>{ setCropMode(null); setImgs(p=>({...p,bot:null})); }}/>
-          {!isMobile&&!cropMode&&(
-            <div style={{display:"flex",justifyContent:"center",padding:"14px 0 10px"}}>
-              <button className="save-btn" onClick={handleSave} style={{
-                background:saveClicked?C.activeBlue:"rgba(240,247,252,0.88)",
-                border:`1.5px solid ${saveClicked?"#7a9ab5":"rgba(160,200,230,0.7)"}`,
-                color:saveClicked?"#fff":"#6a9ab5",
-                padding:"10px 36px",borderRadius:50,
-                fontFamily:"'Jost',sans-serif",fontSize:10,letterSpacing:3,
-                textTransform:"uppercase",cursor:"pointer",
-                boxShadow:"0 4px 16px rgba(0,0,0,0.1)",
-                opacity: hasAnyImg ? 1 : 0.5,
-              }}>↓ Save</button>
-            </div>
-          )}
         </div>
+
+        {/* Save button — below slots, outside stamp white area */}
+        {!isMobile&&!cropMode&&(
+          <div style={{marginTop:16,marginBottom:20}}>
+            <button className="save-btn" onClick={handleSave} style={{
+              background:saveClicked?C.activeBlue:"rgba(240,247,252,0.88)",
+              border:`1.5px solid ${saveClicked?"#7a9ab5":"rgba(160,200,230,0.7)"}`,
+              color:saveClicked?"#fff":"#6a9ab5",
+              padding:"10px 36px",borderRadius:50,
+              fontFamily:"'Jost',sans-serif",fontSize:10,letterSpacing:3,
+              textTransform:"uppercase",cursor:"pointer",
+              boxShadow:"0 4px 16px rgba(0,0,0,0.1)",
+              opacity:hasAnyImg?1:0.5,
+            }}>↓ Save</button>
+          </div>
+        )}
 
         <p style={{
           marginTop:14,fontFamily:"'Cormorant Garamond',serif",fontStyle:"italic",
@@ -597,7 +600,7 @@ function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpa
     return ()=>ro.disconnect();
   },[slotRef]);
   const SLOT_W=actualW;
-  const slotH=hasImg ? Math.round(SLOT_W*img.naturalHeight/img.naturalWidth) : 240;
+  const slotH=hasImg ? Math.round(SLOT_W*img.naturalHeight/img.naturalWidth) : Math.round(SLOT_W*0.72);
 
   return(
     <div ref={slotRef} style={{
