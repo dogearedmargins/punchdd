@@ -443,10 +443,10 @@ export default function PunchCut(){
         background:`url('/icons/vintage_blue_background.jpg') center/cover no-repeat`,
       }}>
         {/* Stamp card — 1200px fixed, natural ratio, responsive on mobile */}
-        <div style={{position:"relative",zIndex:1,width:isMobile?"123vw":1200,flexShrink:0}}>
+        <div style={{position:"relative",zIndex:1,width:isMobile?"95vw":1200,flexShrink:0}}>
           {/* Stamp image — natural aspect ratio maintained */}
           <img
-            src="/icons/stamp_border.png"
+            src={isMobile?"/icons/stamp_border_mobile.png":"/icons/stamp_border.png"}
             alt=""
             onLoad={e=>setStampRatio(e.target.naturalHeight/e.target.naturalWidth)}
             style={{width:"100%",display:"block",pointerEvents:"none",userSelect:"none"}}
@@ -454,13 +454,13 @@ export default function PunchCut(){
           {/* Slots — centered inside stamp inner area */}
           <div style={{
             position:"absolute",
-            top:isMobile?"26%":"22%", bottom:"12%",
-            left:isMobile?"16%":340,
-            right:isMobile?"16%":340,
+            top:isMobile?"8%":"22%", bottom:isMobile?"5%":"12%",
+            left:isMobile?"12%":370,
+            right:isMobile?"12%":370,
             display:"flex", flexDirection:"column",
-            overflow:"hidden",
+            overflow:"clip",
           }}>
-            <div style={{position:"relative",overflow:"visible",flex:1,minHeight:0}}>
+            <div style={{position:"relative",overflow:"visible", flex:1, minHeight:0}}>
               <Slot slot="top" slotRef={topSlot} cvsRef={topCvs} img={imgs.top}
                 ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
                 onWallpaper={(d)=>insertWallpaper(d,"top")}
@@ -468,7 +468,7 @@ export default function PunchCut(){
                 onApplyCrop={(d)=>applyCrop("top",d)}
                 onCancelCrop={()=>{ setCropMode(null); setImgs(p=>({...p,top:null})); }}/>
             </div>
-            <div style={{position:"relative",overflow:"visible",flex:1,minHeight:0}}>
+            <div style={{position:"relative",overflow:"visible", flex:1, minHeight:0}}>
               <Slot slot="bot" slotRef={botSlot} cvsRef={botCvs} img={imgs.bot}
                 ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
                 onWallpaper={(d)=>insertWallpaper(d,"bot")}
@@ -481,7 +481,7 @@ export default function PunchCut(){
 
         {/* Save button — just below stamp */}
         {!isMobile&&!cropMode&&(
-          <div style={{position:"relative",zIndex:1,marginTop:4}}>
+          <div style={{position:"relative",zIndex:1,marginTop:-110}}>
             <button className="save-btn" onClick={handleSave} style={{
               background:saveClicked?C.activeBlue:"rgba(240,247,252,0.88)",
               border:`1.5px solid ${saveClicked?"#7a9ab5":"rgba(160,200,230,0.7)"}`,
@@ -606,49 +606,41 @@ function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpa
   const slotH=hasImg?Math.round(SLOT_W*img.naturalHeight/img.naturalWidth):Math.round(SLOT_W*0.72);
 
   return(
-    // Outer wrapper — positioning context, overflow:visible so CropOverlay can extend
     <div ref={slotRef} style={{
-      position:"relative", width:"100%", height:slotH,
-      overflow:"visible",
-    }}>
-      {/* Inner image container — clips image only */}
-      <div style={{
-        position:"absolute", inset:0,
-        overflow:"hidden",
-        background:"transparent",
-        cursor:isCropping?"default":(hasImg?"crosshair":"pointer"),
-      }}
-        onClick={e=>{if(hasImg&&!isCropping) onPunch(e,slot);}}
-        onTouchEnd={e=>{if(hasImg&&!isCropping) onPunch(e,slot);}}
-        onDragOver={e=>{e.preventDefault();}}
-        onDrop={e=>{e.preventDefault();onLoad(e.dataTransfer.files[0],slot);}}
-      >
-        {hasImg&&<img src={img.src} alt="" style={{
-          position:"absolute",inset:0,width:"100%",height:"100%",
-          objectFit:"cover",pointerEvents:"none",
-        }}/>}
-        <canvas ref={cvsRef} style={{
-          position:"absolute",inset:0,width:"100%",height:"100%",
-          pointerEvents:"none",zIndex:2,
+      position:"relative",width:"100%",height:slotH,
+      overflow:isCropping?"visible":"hidden",
+      background:"transparent",
+      cursor:isCropping?"default":(hasImg?"crosshair":"pointer"),
+    }}
+      onClick={e=>{if(hasImg&&!isCropping) onPunch(e,slot);}}
+      onTouchEnd={e=>{if(hasImg&&!isCropping) onPunch(e,slot);}}
+      onDragOver={e=>{e.preventDefault();}}
+      onDrop={e=>{e.preventDefault();onLoad(e.dataTransfer.files[0],slot);}}
+    >
+      {hasImg&&<img src={img.src} alt="" style={{
+        position:"absolute",inset:0,width:"100%",height:"100%",
+        objectFit:"cover",pointerEvents:"none",
+      }}/>}
+      <canvas ref={cvsRef} style={{
+        position:"absolute",inset:0,width:"100%",height:"100%",
+        pointerEvents:"none",zIndex:2,
+      }}/>
+      {ripples.filter(r=>r.slot===slot).map(r=>(
+        <div key={r.id} style={{
+          position:"absolute",width:r.size,height:r.size,
+          left:r.x-r.size/2,top:r.y-r.size/2,
+          borderRadius:"50%",border:`1.5px solid ${C.accent}`,
+          pointerEvents:"none",zIndex:10,
+          animation:"rpl 0.6s ease-out forwards",
         }}/>
-        {ripples.filter(r=>r.slot===slot).map(r=>(
-          <div key={r.id} style={{
-            position:"absolute",width:r.size,height:r.size,
-            left:r.x-r.size/2,top:r.y-r.size/2,
-            borderRadius:"50%",border:`1.5px solid ${C.accent}`,
-            pointerEvents:"none",zIndex:10,
-            animation:"rpl 0.6s ease-out forwards",
-          }}/>
-        ))}
-        <div style={{
-          position:"absolute",top:10,left:12,zIndex:4,
-          fontFamily:"serif",fontStyle:"italic",
-          fontSize:10,letterSpacing:3,pointerEvents:"none",
-          color:hasImg?"rgba(255,255,255,0.5)":C.muted,
-        }}>{slot==="top"?"Top":"Bottom"}</div>
-        {!hasImg&&<UploadZone slot={slot} onFile={f=>onLoad(f,slot)} onUrl={url=>onLoadUrl(url,slot)} onWallpaper={onWallpaper}/>}
-      </div>
-      {/* CropOverlay — outside overflow:hidden, free to extend in all directions */}
+      ))}
+      <div style={{
+        position:"absolute",top:10,left:12,zIndex:4,
+        fontFamily:"serif",fontStyle:"italic",
+        fontSize:10,letterSpacing:3,pointerEvents:"none",
+        color:hasImg?"rgba(255,255,255,0.5)":C.muted,
+      }}>{slot==="top"?"Top":"Bottom"}</div>
+      {!hasImg&&<UploadZone slot={slot} onFile={f=>onLoad(f,slot)} onUrl={url=>onLoadUrl(url,slot)} onWallpaper={onWallpaper}/>}
       {isCropping&&hasImg&&(
         <CropOverlay img={img} slotW={SLOT_W} slotH={slotH} onApply={onApplyCrop} onCancel={onCancelCrop}/>
       )}
@@ -660,7 +652,7 @@ function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpa
 function CropOverlay({img,slotW,slotH,onApply,onCancel}){
   const [rect,setRect]=useState({x:0,y:0,w:slotW,h:slotH});
   const dragRef=useRef(null);
-  const HANDLE=28, MIN=40, EXTEND=20;
+  const HANDLE=28, MIN=40, EXTEND=0;
 
   function getEdge(cx,cy,r){
     const atL=cx<r.x+HANDLE, atR=cx>r.x+r.w-HANDLE;
