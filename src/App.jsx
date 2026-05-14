@@ -438,7 +438,7 @@ export default function PunchCut(){
       {/* ── MAIN CANVAS ── */}
       <div style={{
         flex:1, position:"relative", overflow:"auto",
-        touchAction: cropMode ? "none" : "auto",
+        touchAction: cropMode ? "hidden" : "auto",
         display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
         padding:"24px 0",
         background:`url('/icons/vintage_blue_background.jpg') center/cover no-repeat`,
