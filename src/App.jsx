@@ -53,8 +53,8 @@ SHAPES.forEach(s => {
 });
 
 // ── Paper texture wallpaper generator ────────────────────
-function generateTexturedWallpaper(color) {
-  const W = 800, H = 800;
+function generateTexturedWallpaper(color, ratio=0.75) {
+  const W = 800, H = Math.round(800 * ratio);
   const c = document.createElement('canvas');
   c.width = W; c.height = H;
   const ctx = c.getContext('2d');
@@ -640,7 +640,7 @@ function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpa
         fontSize:10,letterSpacing:3,pointerEvents:"none",
         color:hasImg?"rgba(255,255,255,0.5)":C.muted,
       }}>{slot==="top"?"Top":"Bottom"}</div>
-      {!hasImg&&<UploadZone slot={slot} onFile={f=>onLoad(f,slot)} onUrl={url=>onLoadUrl(url,slot)} onWallpaper={onWallpaper}/>}
+      {!hasImg&&<UploadZone slot={slot} onFile={f=>onLoad(f,slot)} onUrl={url=>onLoadUrl(url,slot)} onWallpaper={onWallpaper} slotW={SLOT_W} slotH={slotH}/>}
       {isCropping&&hasImg&&(
         <CropOverlay img={img} slotW={SLOT_W} slotH={slotH} onApply={onApplyCrop} onCancel={onCancelCrop}/>
       )}
@@ -735,13 +735,14 @@ function CropOverlay({img,slotW,slotH,onApply,onCancel}){
 }
 
 // ── UploadZone ────────────────────────────────────────────
-function UploadZone({slot,onFile,onUrl,onWallpaper}){
+function UploadZone({slot,onFile,onUrl,onWallpaper,slotW,slotH}){
   const inputRef=useRef(null);
   const colorInputRef=useRef(null);
   const [tab,setTab]=useState("upload");
 
   function handleWallpaperSelect(color){
-    const dataUrl=generateTexturedWallpaper(color);
+    const ratio = slotH && slotW ? slotH/slotW : 0.75;
+    const dataUrl=generateTexturedWallpaper(color, ratio);
     onWallpaper(dataUrl);
   }
 
