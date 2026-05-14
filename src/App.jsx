@@ -460,7 +460,7 @@ export default function PunchCut(){
             display:"flex", flexDirection:"column",
             overflow:"hidden",
           }}>
-            <div style={{position:"relative",overflow:"hidden"}}>
+            <div style={{position:"relative",overflow:"visible", flex:1, minHeight:0}}>
               <Slot slot="top" slotRef={topSlot} cvsRef={topCvs} img={imgs.top}
                 ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
                 onWallpaper={(d)=>insertWallpaper(d,"top")}
@@ -468,7 +468,7 @@ export default function PunchCut(){
                 onApplyCrop={(d)=>applyCrop("top",d)}
                 onCancelCrop={()=>{ setCropMode(null); setImgs(p=>({...p,top:null})); }}/>
             </div>
-            <div style={{position:"relative",overflow:"hidden"}}>
+            <div style={{position:"relative",overflow:"visible", flex:1, minHeight:0}}>
               <Slot slot="bot" slotRef={botSlot} cvsRef={botCvs} img={imgs.bot}
                 ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
                 onWallpaper={(d)=>insertWallpaper(d,"bot")}
