@@ -387,6 +387,9 @@ export default function PunchCut(){
         .save-btn:active{transform:scale(0.97)}
         *{box-sizing:border-box}
         *::-webkit-scrollbar{display:none}
+         *{box-sizing:border-box}
+        *::-webkit-scrollbar{display:none}
+        body{overscroll-behavior:none; overflow:hidden;}
       `}</style>
 
       {/* ── DESKTOP SIDEBAR ── */}
