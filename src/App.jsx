@@ -482,7 +482,7 @@ export default function PunchCut(){
             </div>
           </div>
         </div>
-
+      {isMobile&&<div style={{height:"70vh"}}/>}  
         {/* Save button — just below stamp */}
         {!isMobile&&!cropMode&&(
           <div style={{position:"relative",zIndex:1,marginTop:-110}}>
