@@ -481,7 +481,7 @@ export default function PunchCut(){
 
         {/* Save button — just below stamp */}
         {!isMobile&&!cropMode&&(
-          <div style={{position:"relative",zIndex:1,marginTop:-80}}>
+          <div style={{position:"relative",zIndex:1,marginTop:-110}}>
             <button className="save-btn" onClick={handleSave} style={{
               background:saveClicked?C.activeBlue:"rgba(240,247,252,0.88)",
               border:`1.5px solid ${saveClicked?"#7a9ab5":"rgba(160,200,230,0.7)"}`,
