@@ -608,7 +608,7 @@ function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpa
   return(
     <div ref={slotRef} style={{
       position:"relative",width:"100%",height:slotH,
-      overflow:"hidden",
+      overflow:isCropping?"visible":"hidden",
       background:"transparent",
       cursor:isCropping?"default":(hasImg?"crosshair":"pointer"),
     }}
@@ -652,7 +652,7 @@ function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpa
 function CropOverlay({img,slotW,slotH,onApply,onCancel}){
   const [rect,setRect]=useState({x:0,y:0,w:slotW,h:slotH});
   const dragRef=useRef(null);
-  const HANDLE=28, MIN=40, EXTEND=20;
+  const HANDLE=28, MIN=40, EXTEND=60;
 
   function getEdge(cx,cy,r){
     const atL=cx<r.x+HANDLE, atR=cx>r.x+r.w-HANDLE;
