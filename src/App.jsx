@@ -455,8 +455,8 @@ export default function PunchCut(){
           <div style={{
             position:"absolute",
             top:isMobile?"8%":"20%", bottom:isMobile?"5%":"12%",
-            left:isMobile?"12%":353,
-            right:isMobile?"12%":353,
+            left:isMobile?"12%":370,
+            right:isMobile?"12%":370,
             display:"flex", flexDirection:"column",
             overflow:"hidden",
           }}>
