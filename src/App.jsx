@@ -375,7 +375,10 @@ export default function PunchCut(){
     <div style={{
       display:"flex",
       flexDirection:isMobile?"column":"row",
-      height:"100dvh",background:C.bg,overflow:"hidden",
+      height:isMobile?"auto":"100dvh",
+      minHeight:"100dvh",
+      background:C.bg,
+      overflow:isMobile?"visible":"hidden",
     }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Jost:wght@300;400&display=swap');
@@ -441,7 +444,7 @@ export default function PunchCut(){
 
       {/* ── MAIN CANVAS ── */}
       <div style={{
-          flex:1, position:"relative", overflowX:"hidden", overflowY:"auto",
+          flex:1, position:"relative", overflowX:"hidden", overflow:isMobile?"visible":"auto",
           overscrollBehavior:"none",
           scrollbarWidth:"none",
           msOverflowStyle:"none",
