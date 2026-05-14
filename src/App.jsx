@@ -439,12 +439,13 @@ export default function PunchCut(){
       {/* ── MAIN CANVAS ── */}
       <div style={{
           flex:1, position:"relative", overflowX:"hidden", overflowY:"auto",
+          overscrollBehavior:"none",
           scrollbarWidth:"none",
           msOverflowStyle:"none",
           display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-start",
           paddingTop: isMobile ? "5vh" : "24px",
           paddingBottom: isMobile ? "150vh" : 24,
-          background:`url('/icons/vintage_blue_background.jpg') center/cover no-repeat`,
+          background:`url('/icons/vintage_blue_background.jpg') center/cover repeat`,
       }}>
         {/* Stamp card — 1200px fixed, natural ratio, responsive on mobile */}
         <div style={{position:"relative",zIndex:1,width:isMobile?"95vw":1200,flexShrink:0}}>
@@ -482,7 +483,7 @@ export default function PunchCut(){
             </div>
           </div>
         </div>
-      {isMobile&&<div style={{height:"70vh"}}/>}  
+      {isMobile && <div style={{height:"50vh", flexShrink:0}}/>}
         {/* Save button — just below stamp */}
         {!isMobile&&!cropMode&&(
           <div style={{position:"relative",zIndex:1,marginTop:-110}}>
