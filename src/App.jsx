@@ -437,11 +437,10 @@ export default function PunchCut(){
 
       {/* ── MAIN CANVAS ── */}
       <div style={{
-        flex:1, position:"relative", overflow:"auto",
-        touchAction: cropMode ? "hidden" : "auto",
-        display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-        padding:"24px 0",
-        background:`url('/icons/vintage_blue_background.jpg') center/cover no-repeat`,
+          flex:1, position:"relative", overflow:"hidden",
+          display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+          padding:"24px 0",
+          background:`url('/icons/vintage_blue_background.jpg') center/cover no-repeat`,
       }}>
         {/* Stamp card — 1200px fixed, natural ratio, responsive on mobile */}
         <div style={{position:"relative",zIndex:1,width:isMobile?"95vw":1200,flexShrink:0}}>
@@ -459,7 +458,7 @@ export default function PunchCut(){
             left:isMobile?"12%":370,
             right:isMobile?"12%":370,
             display:"flex", flexDirection:"column",
-            overflow:"visible",
+            overflow:"auto",
           }}>
             <div style={{position:"relative", overflow:"visible"}}>
               <Slot slot="top" slotRef={topSlot} cvsRef={topCvs} img={imgs.top}
