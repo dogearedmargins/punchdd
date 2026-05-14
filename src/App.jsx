@@ -498,6 +498,11 @@ export default function PunchCut(){
             }}>↓ Save</button>
           </div>
         )}
+      
+        {/* Spacer — 하단 슬롯 크롭 시 스크롤 공간 확보 */}
+        {isMobile&&cropMode&&(
+          <div style={{height:400, flexShrink:0}}/>
+        )}
 
       </div>
 
