@@ -685,7 +685,7 @@ function Slot({slot,slotRef,cvsRef,img,ripples,onPunch,onLoad,onLoadUrl,onWallpa
 function CropOverlay({img,slotW,slotH,onApply,onCancel}){
   const [rect,setRect]=useState({x:0,y:0,w:slotW,h:slotH});
   const dragRef=useRef(null);
-  const HANDLE=28, MIN=40, EXTEND=0;
+  const HANDLE=60, MIN=40, EXTEND=20;
 
   function getEdge(cx,cy,r){
     const atL=cx<r.x+HANDLE, atR=cx>r.x+r.w-HANDLE;
@@ -743,7 +743,7 @@ function CropOverlay({img,slotW,slotH,onApply,onCancel}){
   }
 
   return(
-    <div style={{position:"absolute",inset:-EXTEND,zIndex:20,touchAction:"none"}} onMouseDown={onDown} onTouchStart={onDown}>
+    <div style={{position:"absolute",inset:-EXTEND,zIndex:9999,touchAction:"none"}} onMouseDown={onDown} onTouchStart={onDown}>
       <div style={{position:"absolute",left:0,top:0,width:"100%",height:rect.y+EXTEND,background:"rgba(0,0,0,0.45)",pointerEvents:"none"}}/>
       <div style={{position:"absolute",left:0,top:rect.y+rect.h+EXTEND,width:"100%",bottom:0,background:"rgba(0,0,0,0.45)",pointerEvents:"none"}}/>
       <div style={{position:"absolute",left:0,top:rect.y+EXTEND,width:rect.x+EXTEND,height:rect.h,background:"rgba(0,0,0,0.45)",pointerEvents:"none"}}/>
