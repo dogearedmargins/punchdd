@@ -602,11 +602,14 @@ export default function PunchCut(){
               💻 <b>Desktop</b>: click the button below
             </div>
             <a href={previewUrl} download="punchdd.png" style={{
-              width:"100%",textAlign:"center",
-              background:C.accent,color:"#fff",textDecoration:"none",
-              padding:"12px",borderRadius:8,
-              fontFamily:"'Jost',sans-serif",fontSize:10,letterSpacing:2,textTransform:"uppercase",
-              boxShadow:"0 4px 12px rgba(196,160,144,.3)",
+             width:"100%",textAlign:"center",
+              background:"rgba(240,247,252,0.88)",
+              border:"1.5px solid rgba(160,200,230,0.7)",
+              color:"#6a9ab5",textDecoration:"none",
+              padding:"12px",borderRadius:50,
+              fontFamily:"'Jost',sans-serif",fontSize:10,letterSpacing:3,textTransform:"uppercase",
+              boxShadow:"0 4px 16px rgba(0,0,0,0.1)",
+
             }}>↓ Download</a>
             <button onClick={()=>setPreviewUrl(null)} style={{
               background:"transparent",border:"none",color:C.muted,
