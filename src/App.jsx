@@ -392,7 +392,8 @@ export default function PunchCut(){
         *::-webkit-scrollbar{display:none}
          *{box-sizing:border-box}
         *::-webkit-scrollbar{display:none}
-        body{overscroll-behavior:none; overflow:hidden;}
+        body{overscroll-behavior:none;}
+        html, body, #root { height: auto !important; min-height: 100%; }
       `}</style>
 
       {/* ── DESKTOP SIDEBAR ── */}
