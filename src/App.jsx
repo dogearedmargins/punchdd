@@ -443,7 +443,7 @@ export default function PunchCut(){
           msOverflowStyle:"none",
           display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-start",
           paddingTop: isMobile ? "5vh" : "24px",
-          paddingBottom: isMobile ? (mobileOpen ? 600 : 200) : 24,
+          paddingBottom: isMobile ? "150vh" : 24,
           background:`url('/icons/vintage_blue_background.jpg') center/cover no-repeat`,
       }}>
         {/* Stamp card — 1200px fixed, natural ratio, responsive on mobile */}
@@ -497,10 +497,6 @@ export default function PunchCut(){
               opacity:hasAnyImg?1:0.5,
             }}>↓ Save</button>
           </div>
-        )}
-        {/* Spacer — 하단 슬롯 크롭 시 스크롤 공간 확보 */}
-        {isMobile&&cropMode&&(
-          <div style={{height:800, flexShrink:0}}/>
         )}
 
       </div>
