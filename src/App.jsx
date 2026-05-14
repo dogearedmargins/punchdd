@@ -326,7 +326,7 @@ export default function PunchCut(){
         <span style={{fontFamily:"'Jost',sans-serif",fontSize:11,color:C.accent}}>{size}px</span>
       </div>
       <input type="range" min="1" max="50" value={size} onChange={e=>setSize(+e.target.value)}/>
-      <div style={{display:"flex",justifyContent:"space-between",marginTop:-15}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
         <span style={{fontFamily:"'Jost',sans-serif",fontSize:9,color:C.muted}}>small</span>
         <span style={{fontFamily:"'Jost',sans-serif",fontSize:9,color:C.muted}}>large</span>
       </div>
@@ -481,7 +481,7 @@ export default function PunchCut(){
 
         {/* Save button — just below stamp */}
         {!isMobile&&!cropMode&&(
-          <div style={{position:"relative",zIndex:1,marginTop:4}}>
+          <div style={{position:"relative",zIndex:1,marginTop:-15}}>
             <button className="save-btn" onClick={handleSave} style={{
               background:saveClicked?C.activeBlue:"rgba(240,247,252,0.88)",
               border:`1.5px solid ${saveClicked?"#7a9ab5":"rgba(160,200,230,0.7)"}`,
