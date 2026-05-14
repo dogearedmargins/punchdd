@@ -473,7 +473,10 @@ export default function PunchCut(){
             display:"flex", flexDirection:"column",
             overflow:cropMode?"visible":"hidden",
           }}>
-            <div style={{position:"relative", overflow:"visible"}}>
+            <div style={{
+                position:"relative", overflow:"visible",
+                pointerEvents: cropMode==="bot" ? "none" : "auto",
+              }}>
               <Slot slot="top" slotRef={topSlot} cvsRef={topCvs} img={imgs.top}
                 ripples={ripples} onPunch={punch} onLoad={loadImg} onLoadUrl={loadImgFromUrl}
                 onWallpaper={(d)=>insertWallpaper(d,"top")}
