@@ -386,6 +386,7 @@ export default function PunchCut(){
         .save-btn:hover{transform:scale(1.04);box-shadow:0 8px 24px rgba(122,154,181,0.4)!important}
         .save-btn:active{transform:scale(0.97)}
         *{box-sizing:border-box}
+        *::-webkit-scrollbar{display:none}
       `}</style>
 
       {/* ── DESKTOP SIDEBAR ── */}
@@ -437,7 +438,9 @@ export default function PunchCut(){
 
       {/* ── MAIN CANVAS ── */}
       <div style={{
-          flex:1, position:"relative", overflow:"hidden",
+          flex:1, position:"relative", overflow:"auto",
+          scrollbarWidth:"none",
+          msOverflowStyle:"none",
           display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
           padding:"24px 0",
           background:`url('/icons/vintage_blue_background.jpg') center/cover no-repeat`,
