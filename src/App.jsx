@@ -326,7 +326,7 @@ export default function PunchCut(){
         <span style={{fontFamily:"'Jost',sans-serif",fontSize:11,color:C.accent}}>{size}px</span>
       </div>
       <input type="range" min="1" max="50" value={size} onChange={e=>setSize(+e.target.value)}/>
-      <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+      <div style={{display:"flex",justifyContent:"space-between",marginTop:-15}}>
         <span style={{fontFamily:"'Jost',sans-serif",fontSize:9,color:C.muted}}>small</span>
         <span style={{fontFamily:"'Jost',sans-serif",fontSize:9,color:C.muted}}>large</span>
       </div>
