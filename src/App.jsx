@@ -451,7 +451,7 @@ export default function PunchCut(){
           msOverflowStyle:"none",
           display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-start",
           paddingTop: isMobile ? "5vh" : "24px",
-          paddingBottom: isMobile ? "50vh" : 24,
+          paddingBottom: isMobile ? "5vh" : 24,
           background:`url('/icons/vintage_blue_background.jpg') center/cover repeat`,
           minHeight: isMobile ? "100vh" : "100%",
       }}>
