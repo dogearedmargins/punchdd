@@ -438,12 +438,12 @@ export default function PunchCut(){
 
       {/* ── MAIN CANVAS ── */}
       <div style={{
-          flex:1, position:"relative", overflow:"auto",
+          flex:1, position:"relative", overflowX:"hidden", overflowY:"auto",
           scrollbarWidth:"none",
           msOverflowStyle:"none",
           display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-start",
           paddingTop: isMobile ? "5vh" : "24px",
-          paddingBottom: isMobile ? (mobileOpen ? 400 : 120) : 24,
+          paddingBottom: isMobile ? (mobileOpen ? 600 : 200) : 24,
           background:`url('/icons/vintage_blue_background.jpg') center/cover no-repeat`,
       }}>
         {/* Stamp card — 1200px fixed, natural ratio, responsive on mobile */}
