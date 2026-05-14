@@ -441,8 +441,9 @@ export default function PunchCut(){
           flex:1, position:"relative", overflow:"auto",
           scrollbarWidth:"none",
           msOverflowStyle:"none",
-          display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
-          padding:"24px 0",
+          display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-start",
+          paddingTop: isMobile ? "5vh" : "24px",
+          paddingBottom: isMobile ? (mobileOpen ? 344 : 68) : 24,
           background:`url('/icons/vintage_blue_background.jpg') center/cover no-repeat`,
       }}>
         {/* Stamp card — 1200px fixed, natural ratio, responsive on mobile */}
@@ -508,7 +509,9 @@ export default function PunchCut(){
           height:mobileOpen?330:54,
           minHeight:mobileOpen?330:54,
           transition:"height 0.3s cubic-bezier(.4,0,.2,1),min-height 0.3s cubic-bezier(.4,0,.2,1)",
-          overflow:"hidden",flexShrink:0,position:"relative",
+          overflow:"hidden",
+          position:"fixed", bottom:0, left:0, right:0, zIndex:100,
+          boxShadow:"0 -8px 24px rgba(0,0,0,0.15)",
         }}>
           <div onClick={()=>setMobileOpen(o=>!o)} style={{
             height:54,display:"flex",
@@ -539,18 +542,30 @@ export default function PunchCut(){
             <SizeSlider/>
             <Sep/>
             <ActionButtons/>
-            <Sep/>
-                <button className="save-btn" onClick={handleSave} style={{
-                  background:saveClicked?C.activeBlue:"rgba(240,247,252,0.88)",
-                  border:`1.5px solid ${saveClicked?"#7a9ab5":"rgba(160,200,230,0.7)"}`,
-                  color:saveClicked?"#fff":"#6a9ab5",
-                  padding:"12px 0",borderRadius:50,
-                  fontFamily:"'Jost',sans-serif",fontSize:10,letterSpacing:3,
-                  textTransform:"uppercase",cursor:"pointer",
-                  boxShadow:"0 4px 16px rgba(0,0,0,0.1)",
-                  opacity:hasAnyImg?1:0.5,
-                }}>↓ Save</button>
           </div>
+        </div>
+      )}
+
+      {/* ── MOBILE SAVE BUTTON — floats above fixed panel ── */}
+      {isMobile&&!cropMode&&(
+        <div style={{
+          position:"fixed",
+          bottom:mobileOpen?344:68,
+          left:"50%",
+          transform:"translateX(-50%)",
+          zIndex:99,
+        }}>
+          <button className="save-btn" onClick={handleSave} style={{
+            background:saveClicked?C.activeBlue:"rgba(240,247,252,0.88)",
+            border:`1.5px solid ${saveClicked?"#7a9ab5":"rgba(160,200,230,0.7)"}`,
+            color:saveClicked?"#fff":"#6a9ab5",
+            padding:"10px 36px",borderRadius:50,
+            fontFamily:"'Jost',sans-serif",fontSize:10,letterSpacing:3,
+            textTransform:"uppercase",cursor:"pointer",
+            boxShadow:"0 4px 16px rgba(0,0,0,0.15)",
+            opacity:hasAnyImg?1:0.5,
+            whiteSpace:"nowrap",
+          }}>↓ Save</button>
         </div>
       )}
 
