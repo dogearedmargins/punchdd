@@ -126,7 +126,11 @@ export default function PunchCut(){
   },[]);
 
   useEffect(()=>{
-    if(cropMode) setMobileOpen(false);
+    if(cropMode){
+      document.body.style.overscrollBehavior = "none";
+    } else {
+      document.body.style.overscrollBehavior = "";
+    }
   },[cropMode]);
 
   const draw=useCallback((slot)=>{
