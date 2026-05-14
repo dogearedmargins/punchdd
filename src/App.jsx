@@ -454,9 +454,9 @@ export default function PunchCut(){
           {/* Slots — centered inside stamp inner area */}
           <div style={{
             position:"absolute",
-            top:isMobile?"10%":"22%", bottom:isMobile?"5%":"12%",
-            left:isMobile?"10%":340,
-            right:isMobile?"10%":340,
+            top:isMobile?"8%":"20%", bottom:isMobile?"5%":"12%",
+            left:isMobile?"12%":353,
+            right:isMobile?"12%":353,
             display:"flex", flexDirection:"column",
             overflow:"hidden",
           }}>
