@@ -471,7 +471,7 @@ export default function PunchCut(){
             left:isMobile?"12%":370,
             right:isMobile?"12%":370,
             display:"flex", flexDirection:"column",
-            overflow:"visible":"hidden",
+            overflow:cropMode?"visible":"hidden",
           }}>
             <div style={{position:"relative", overflow:"visible"}}>
               <Slot slot="top" slotRef={topSlot} cvsRef={topCvs} img={imgs.top}
