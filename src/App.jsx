@@ -443,7 +443,7 @@ export default function PunchCut(){
           msOverflowStyle:"none",
           display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"flex-start",
           paddingTop: isMobile ? "5vh" : "24px",
-          paddingBottom: isMobile ? (mobileOpen ? 344 : 68) : 24,
+          paddingBottom: isMobile ? (mobileOpen ? 400 : 120) : 24,
           background:`url('/icons/vintage_blue_background.jpg') center/cover no-repeat`,
       }}>
         {/* Stamp card — 1200px fixed, natural ratio, responsive on mobile */}
@@ -458,11 +458,11 @@ export default function PunchCut(){
           {/* Slots — centered inside stamp inner area */}
           <div style={{
             position:"absolute",
-            top:isMobile?"8%":"22%", bottom:isMobile?"5%":"12%",
+            top:isMobile?"8%":"22%", bottom:isMobile?"8%":"12%",
             left:isMobile?"12%":370,
             right:isMobile?"12%":370,
             display:"flex", flexDirection:"column",
-            overflow:"visible",
+            overflow:"visible":"hidden",
           }}>
             <div style={{position:"relative", overflow:"visible"}}>
               <Slot slot="top" slotRef={topSlot} cvsRef={topCvs} img={imgs.top}
