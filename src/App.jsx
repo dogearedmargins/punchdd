@@ -449,6 +449,7 @@ export default function PunchCut(){
           paddingTop: isMobile ? "5vh" : "24px",
           paddingBottom: isMobile ? "150vh" : 24,
           background:`url('/icons/vintage_blue_background.jpg') center/cover repeat`,
+          minHeight: isMobile ? "300vh" : "100%",
       }}>
         {/* Stamp card — 1200px fixed, natural ratio, responsive on mobile */}
         <div style={{position:"relative",zIndex:1,width:isMobile?"95vw":1200,flexShrink:0}}>
