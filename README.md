@@ -1,125 +1,78 @@
-# Punchd — Deployment Guide
+# Punchd ✦
 
-## What's inside
-```
-punchd/
-├── index.html          ← HTML entry point
-├── vite.config.js      ← Build config
-├── package.json        ← Dependencies
-├── vercel.json         ← Vercel hosting + security headers
-├── .gitignore
-└── src/
-    ├── main.jsx        ← React entry
-    └── App.jsx         ← Your entire app
-```
+> Punch holes in any shape — circle, heart, star, and more — to reveal a second photo beneath.
+
+**[→https://punchdd.vercel.app/]*
 
 ---
 
-## Step-by-step: Deploy to Vercel (free)
+## 이런 앱이에요
 
-### Prerequisites
-- A computer with internet access
-- A free account at github.com
-- A free account at vercel.com (sign up with your GitHub account)
+사진 두 장을 위아래로 배치하고, 원하는 곳을 클릭하면 **펀치로 구멍을 뚫듯** 아래 사진이 비쳐 보이는 효과를 만들 수 있어요. 모든 작업은 브라우저 안에서만 이루어지고, 이미지는 서버로 전송되지 않아요.
 
----
-
-### Step 1 — Install Node.js
-Go to https://nodejs.org and download the **LTS** version. Install it.
-
-Verify it worked — open Terminal (Mac) or Command Prompt (Windows) and type:
 ```
-node -v
-```
-You should see something like `v20.x.x`.
-
----
-
-### Step 2 — Set up the project locally
-Unzip this folder somewhere on your computer, then open Terminal in that folder.
-
-Install dependencies:
-```bash
-npm install
+[ 위쪽 사진 ]          ← 직접 찍은 사진 업로드
+  ○  ○    ○            ← 클릭해서 구멍 뚫기
+     ○  ○              ← 구멍 안으로 아래 사진이 비침
+─────────────
+[ 아래쪽 사진 ]        ← 다른 사진 업로드
 ```
 
-Test it runs locally:
-```bash
-npm run dev
-```
-Open http://localhost:5173 in your browser. You should see the app.
+---
 
-Press `Ctrl+C` to stop the dev server when done.
+## 사용법
+
+**1. 사진 올리기**
+위/아래 슬롯 중 하나를 탭하거나, 이미지 파일을 드래그&드롭해요.
+사진을 올리면 바로 크롭 화면이 나타나요 — 원하는 영역을 잡고 **Done** 을 눌러요.
+
+**2. 펀치 모양 · 크기 고르기**
+왼쪽 사이드바에서 구멍 모양을 골라요.
+
+| 모양 | 설명 |
+|------|------|
+| Circle | 동그란 구멍 |
+| Square | 네모난 구멍 |
+| Stamp | 우표 모양 |
+| Star | 별 모양 |
+| Heart | 하트 |
+| Diamond | 다이아몬드 |
+| Leaf | 나뭇잎 |
+| Flower | 꽃잎 |
+
+크기 슬라이더로 구멍 크기를 1px ~ 50px 사이로 조절해요.
+
+**3. 구멍 뚫기**
+사진 위를 클릭(또는 탭)하면 그 자리에 구멍이 생기고, 반대편 사진이 비쳐 보여요.
+실수했을 때는 **Undo** 로 마지막 구멍을 되돌리고, **Reset** 으로 전부 지울 수 있어요.
+
+**4. 저장하기**
+↓ Save 버튼을 누르면 결과물 미리보기가 떠요.
+- 모바일: 이미지를 꾹 눌러 저장
+- 데스크탑: Download 버튼 클릭
 
 ---
 
-### Step 3 — Create a GitHub repository
-1. Go to https://github.com → click **New repository**
-2. Name it `punchd` (or whatever you like)
-3. Keep it **Public** or **Private** — both work fine with Vercel
-4. Click **Create repository**
+## 주요 기능
+
+- 8가지 펀치 모양 (원, 사각형, 우표, 별, 하트, 다이아몬드, 잎, 꽃)
+- iOS 스타일 크롭 기능 — 이미지 업로드 시 바로 크롭
+- 4× 해상도 내보내기
+- 이미지가 기기 밖으로 전송되지 않음 (완전 클라이언트사이드)
+- 모바일·데스크탑 모두 지원
+
+---
+## 기술 스택
+
+- **React** + **Vite**
+- Canvas API (구멍 렌더링, 내보내기)
+- 배포: Vercel
 
 ---
 
-### Step 4 — Push your code to GitHub
-In your Terminal (inside the project folder):
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/punchd.git
-git push -u origin main
-```
-Replace `YOUR_USERNAME` with your actual GitHub username.
+## 프라이버시
 
----
-
-### Step 5 — Deploy on Vercel
-1. Go to https://vercel.com and sign in with GitHub
-2. Click **Add New → Project**
-3. Find your `punchd` repository and click **Import**
-4. Vercel will auto-detect Vite. Leave all settings as-is.
-5. Click **Deploy**
-
-That's it. In about 30 seconds you'll get a live URL like:
-`https://punchd.vercel.app`
-
----
-
-### Step 6 — (Optional) Add a custom domain
-1. In your Vercel project → **Settings → Domains**
-2. Enter your domain (e.g. `punchd.com`)
-3. Follow the DNS instructions Vercel gives you
-
----
-
-## What the security headers do (vercel.json)
-
-| Header | What it prevents |
-|--------|-----------------|
-| `Content-Security-Policy` | Stops injected malicious scripts from running |
-| `X-Frame-Options: DENY` | Stops your site being embedded in iframes (clickjacking) |
-| `X-Content-Type-Options` | Stops browsers from guessing file types |
-| `Referrer-Policy: no-referrer` | Your URL isn't leaked when users click external links |
-| `Permissions-Policy` | Explicitly blocks access to camera, mic, location |
-
----
-
-## Privacy summary
-- ✅ Images never leave the user's device
-- ✅ No database, no backend, no user accounts
-- ✅ No cookies
-- ⚠️  Google Fonts loads from Google's CDN (they see the user's IP)
-  - To eliminate this: download the fonts and put them in `/public/fonts/`
-
----
-
-## Future updates
-Whenever you change `src/App.jsx`, just run:
-```bash
-git add .
-git commit -m "Update app"
-git push
-```
-Vercel auto-deploys on every push. Done.
+- 이미지는 서버로 전송되지 않고 브라우저 안에서만 처리돼요
+- 데이터베이스, 백엔드, 로그인 없음
+- 쿠키 없음
+- Google Fonts CDN은 사용 중 (IP가 Google에 노출될 수 있어요)
